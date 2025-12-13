@@ -1,0 +1,49 @@
+{
+  "name": "zhigo-food-delivery",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "backend"
+  ],
+  "scripts": {
+    "clean": "npm run clean --workspaces --if-present",
+    "build:types": "npm run build -w @food-delivery/shared-types",
+    "build:utils": "npm run build -w @food-delivery/shared-utils",
+    "build:ui": "npm run build -w @food-delivery/shared-ui",
+    "build:packages": "npm run build:types && npm run build:utils && npm run build:ui",
+    "dev:types": "npm run dev -w @food-delivery/shared-types",
+    "dev:utils": "npm run dev -w @food-delivery/shared-utils",
+    "dev:ui": "npm run dev -w @food-delivery/shared-ui",
+    "dev:packages": "concurrently \"npm:dev:types\" \"npm:dev:utils\" \"npm:dev:ui\"",
+    "dev:mobile": "npm run dev -w customer-mobile",
+    "dev:customer": "npm run dev -w customer-mobile",
+    "dev:rider": "npm run dev -w rider-mobile",
+    "dev:admin": "npm run dev -w admin-portal",
+    "install:all": "npm install",
+    "install:utils": "npm install -w @food-delivery/shared-utils",
+    "install:ui": "npm install -w @food-delivery/shared-ui",
+    "install:types": "npm install -w @food-delivery/shared-types",
+    "install:mobile": "npm install -w customer-mobile",
+    "mobile:build": "npm run build:packages && npm run build -w customer-mobile"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.555.0",
+    "mapbox-gl": "^3.16.0"
+  },
+  "overrides": {
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}

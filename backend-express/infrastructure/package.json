@@ -1,0 +1,20 @@
+{
+    "name": "zhigo-infrastructure",
+    "version": "1.0.0",
+    "description": "AWS CDK infrastructure for Zhigo Food Delivery",
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc -w",
+        "cdk": "cdk"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "aws-cdk": "^2.170.0",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.0.0"
+    },
+    "dependencies": {
+        "aws-cdk-lib": "^2.170.0",
+        "constructs": "^10.0.0"
+    }
+}
