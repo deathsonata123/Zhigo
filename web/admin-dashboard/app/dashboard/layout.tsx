@@ -1,14 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getCurrentUser, fetchAuthSession, signOut } from 'aws-amplify/auth';
-import { Loader2, LayoutDashboard, UtensilsCrossed, Bike, LogOut, Menu } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import {
+    Loader2,
+    LayoutDashboard,
+    UtensilsCrossed,
+    Bike,
+    LogOut,
+    Menu
+} from 'lucide-react';
 import { Button } from 'shared-ui/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from 'shared-ui/components/ui/sheet';
 import { cn } from 'shared-ui/lib/utils';
-import { usePathname } from 'next/navigation';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -32,25 +37,35 @@ export default function DashboardLayout({
 
     const checkAuth = async () => {
         try {
-            const currentUser = await getCurrentUser();
-            const session = await fetchAuthSession();
-            const groups = session.tokens?.idToken?.payload['cognito:groups'] as string[] || [];
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+                credentials: 'include',
+            });
 
-            if (!groups.includes('Admin')) {
+            if (!response.ok) {
+                router.push('/login');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.role !== 'admin') {
                 router.push('/unauthorized');
                 return;
             }
 
-            setUser(currentUser);
+            setUser({ signInDetails: { loginId: data.email || 'Admin' } });
             setLoading(false);
         } catch (error) {
+            console.error('Auth check error:', error);
             router.push('/login');
         }
     };
 
     const handleSignOut = async () => {
         try {
-            await signOut();
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
+                method: 'POST',
+                credentials: 'include',
+            });
             router.push('/login');
         } catch (error) {
             console.error('Sign out error:', error);

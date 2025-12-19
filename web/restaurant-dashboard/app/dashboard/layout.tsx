@@ -1,14 +1,22 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getCurrentUser, fetchAuthSession, signOut } from 'aws-amplify/auth';
-import { Loader2, LayoutDashboard, UtensilsCrossed, Clock, Star, BarChart3, Settings, CreditCard, LogOut, Menu } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import {
+    Loader2,
+    LayoutDashboard,
+    UtensilsCrossed,
+    Clock,
+    Star,
+    BarChart3,
+    Settings,
+    LogOut,
+    Menu
+} from 'lucide-react';
 import { Button } from 'shared-ui/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from 'shared-ui/components/ui/sheet';
 import { cn } from 'shared-ui/lib/utils';
-import { usePathname } from 'next/navigation';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -36,39 +44,49 @@ export default function DashboardLayout({
 
     const checkAuth = async () => {
         try {
-            const currentUser = await getCurrentUser();
-            const session = await fetchAuthSession();
-            const groups = session.tokens?.idToken?.payload['cognito:groups'] as string[] || [];
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+                credentials: 'include',
+            });
 
-            if (!groups.includes('RestaurantOwner')) {
-                router.push('/pending');
+            if (!response.ok) {
+                router.push('/login');
+                return;
+            }
+
+            const data = await response.json();
+
+            // Check if user is restaurant owner
+            if (!data.restaurantId && data.role !== 'restaurant_owner') {
+                router.push('/login');
                 return;
             }
 
             // Fetch restaurant details
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            const response = await fetch(`${apiUrl}/api/restaurants?ownerId=${currentUser.userId}`);
-            if (response.ok) {
-                const restaurants = await response.json();
-                const approved = restaurants.find((r: any) => r.status === 'approved');
-                if (approved) {
-                    setRestaurant(approved);
-                } else {
-                    router.push('/pending');
-                    return;
+            if (data.restaurantId) {
+                const restaurantRes = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/restaurants/${data.restaurantId}`,
+                    { credentials: 'include' }
+                );
+                if (restaurantRes.ok) {
+                    const restaurantData = await restaurantRes.json();
+                    setRestaurant(restaurantData);
                 }
             }
 
-            setUser(currentUser);
+            setUser({ signInDetails: { loginId: data.email || 'Owner' } });
             setLoading(false);
         } catch (error) {
+            console.error('Auth check error:', error);
             router.push('/login');
         }
     };
 
     const handleSignOut = async () => {
         try {
-            await signOut();
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
+                method: 'POST',
+                credentials: 'include',
+            });
             router.push('/login');
         } catch (error) {
             console.error('Sign out error:', error);
@@ -92,7 +110,7 @@ export default function DashboardLayout({
                     <span className="font-bold text-lg">Zhigo</span>
                 </div>
                 <div className="px-4 py-3 border-b">
-                    <p className="text-sm font-medium truncate">{restaurant?.name}</p>
+                    <p className="text-sm font-medium truncate">{restaurant?.name || 'Restaurant'}</p>
                     <p className="text-xs text-muted-foreground">Restaurant Dashboard</p>
                 </div>
                 <nav className="flex-1 p-4 space-y-1">
@@ -151,7 +169,7 @@ export default function DashboardLayout({
                                 <span className="font-bold text-lg">Zhigo</span>
                             </div>
                             <div className="px-4 py-3 border-b">
-                                <p className="text-sm font-medium truncate">{restaurant?.name}</p>
+                                <p className="text-sm font-medium truncate">{restaurant?.name || 'Restaurant'}</p>
                                 <p className="text-xs text-muted-foreground">Restaurant Dashboard</p>
                             </div>
                             <nav className="flex-1 p-4 space-y-1">

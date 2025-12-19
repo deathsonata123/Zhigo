@@ -72,9 +72,8 @@ export function RestaurantDashboard() {
   }, [period]);
 
   const fetchDashboardData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
       const restaurantsRes = await fetch(`${apiUrl}/api/restaurants`);
@@ -223,6 +222,7 @@ export function RestaurantDashboard() {
 
         setStatusDistribution(statusDist);
 
+      }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
