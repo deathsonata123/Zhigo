@@ -1,6 +1,25 @@
+type AnalyticsPeriod = 'today' | 'this-week' | 'this-month' | 'this-year';
 'use client';
 import { useState, useEffect } from 'react';
-import type { AnalyticsData, AnalyticsPeriod } from '@food-delivery/shared-types';
+
+interface AnalyticsData {
+  stats: {
+    totalRevenue: number;
+    totalOrders: number;
+    averageOrderValue: number;
+    cancelledOrders: number;
+    completionRate: number;
+    averageRating: number;
+  };
+  salesData: any[];
+  bestSellers: any[];
+  busyHoursData: any[];
+  cancellationReasons: any[];
+  cancellationData: any[];
+  feedback: any[];
+}
+interface AnalyticsData { stats: { totalRevenue: number; totalOrders: number; averageOrderValue: number; cancelledOrders: number; completionRate: number; averageRating: number; }; salesData: any[]; bestSellers: any[]; busyHoursData: any[]; cancellationReasons: any[]; cancellationData: any[]; feedback: any[]; }
+
 
 export function useAnalytics(restaurantId: string, period: AnalyticsPeriod = 'today') {
   const [analytics, setAnalytics] = useState<AnalyticsData>({
@@ -88,3 +107,4 @@ export function useAnalytics(restaurantId: string, period: AnalyticsPeriod = 'to
 
   return { analytics, loading };
 }
+

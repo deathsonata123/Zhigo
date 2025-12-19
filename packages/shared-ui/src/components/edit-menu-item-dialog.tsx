@@ -19,7 +19,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 import { uploadData } from '../lib/storage';
 import { getUrl } from '../lib/storage';
-import type { MenuItem } from '@food-delivery/shared-types';
+
+interface MenuItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  imageUrl?: string;
+  available: boolean;
+  restaurantId: string;
+}
 
 const menuCategories = ["Appetizer", "Main Course", "Dessert", "Beverage", "Other"];
 

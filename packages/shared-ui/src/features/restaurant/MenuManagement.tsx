@@ -5,10 +5,22 @@ import { useState, useEffect } from 'react';
 import { Button } from "../../components/ui/button";
 import { PlusCircle, Edit, Trash2 } from "lucide-react";
 import { AddMenuItemDialog } from '../../components/add-menu-item-dialog';
-import type { MenuItem } from '@food-delivery/shared-utils';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import Image from 'next/image';
 import { Skeleton } from '../../components/ui/skeleton';
+
+
+interface MenuItem {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    imageUrl?: string;
+    available: boolean;
+    restaurantId: string;
+}
+
 import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
 import { useToast } from '../../hooks/use-toast';
@@ -326,11 +338,11 @@ export default function MenuPage() {
                                 <div className="flex items-center space-x-2">
                                     <Switch
                                         id={`available-${item.id}`}
-                                        checked={item.isAvailable ?? true}
+                                        checked={item.available ?? true}
                                         onCheckedChange={(checked) => handleAvailabilityChange(item.id, checked)}
                                     />
                                     <Label htmlFor={`available-${item.id}`} className="text-sm font-medium">
-                                        {item.isAvailable ? 'Available' : 'Unavailable'}
+                                        {item.available ? 'Available' : 'Unavailable'}
                                     </Label>
                                 </div>
                                 {/* Edit and Delete buttons */}

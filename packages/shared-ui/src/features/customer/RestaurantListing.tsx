@@ -11,7 +11,6 @@ import Autoplay from "embla-carousel-autoplay";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Skeleton } from '../../components/ui/skeleton';
 import { cn } from '../../lib/utils';
-import { DataClient } from '@food-delivery/shared-utils';
 
 type Restaurant = {
   id: string;

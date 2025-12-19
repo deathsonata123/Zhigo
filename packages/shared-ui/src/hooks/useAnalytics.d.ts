@@ -1,4 +1,3 @@
-import type { AnalyticsData, AnalyticsPeriod } from '@food-delivery/shared-types';
 export declare const useAnalytics: (restaurantId: string | null, period: AnalyticsPeriod) => {
     analytics: AnalyticsData;
     loading: boolean;
