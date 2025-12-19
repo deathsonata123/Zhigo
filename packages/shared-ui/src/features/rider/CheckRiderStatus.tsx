@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from '../../lib/auth';
 import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 

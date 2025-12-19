@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from '../../lib/auth';
 
 
 type Order = {
@@ -39,13 +39,13 @@ export default function RestaurantOrdersPage() {
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [restaurantZone, setRestaurantZone] = useState<string>('');
   const { toast } = useToast();
-  
+
   // Reject dialog
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
-  
+
   // Accept dialog
   const [acceptDialogOpen, setAcceptDialogOpen] = useState(false);
   const [prepTime, setPrepTime] = useState(20);
@@ -55,32 +55,12 @@ export default function RestaurantOrdersPage() {
     fetchRestaurantAndOrders();
   }, []);
 
-  // Real-time subscription - FIXED: Removed filter dependency
   useEffect(() => {
     if (!restaurantId) return;
 
-    console.log('🔄 Setting up order subscription for restaurant:', restaurantId);
-
-    const subscription = client.models.Order.observeQuery({
-      filter: { restaurantId: { eq: restaurantId } }
-    }).subscribe({
-      next: ({ items }: any) => {
-        console.log('📥 Received order update:', items.length, 'orders');
-        const sorted = (items as Order[]).sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        setOrders(sorted);
-        console.log('✅ Orders state updated');
-      },
-      error: (error: any) => {
-        console.error('❌ Subscription error:', error);
-      }
-    });
-
-    return () => {
-      console.log('🛑 Unsubscribing from orders');
-      subscription.unsubscribe();
-    };
+    // TODO: Implement WebSocket or polling for real-time order updates
+    // Subscription removed - implement alternative real-time solution
+    console.log('🔄 Real-time subscription removed - implement WebSocket or polling');
   }, [restaurantId]);
 
   const fetchRestaurantAndOrders = async () => {
@@ -88,10 +68,11 @@ export default function RestaurantOrdersPage() {
     try {
       const user = await getCurrentUser();
       console.log('👤 Current user:', user.userId);
-      
-      const { data: restaurants } = await client.models.Restaurant.list({
-        filter: { ownerId: { eq: user.userId } }
-      });
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${user.userId}`);
+      if (!restaurantsRes.ok) throw new Error('No restaurant found');
+      const restaurants = await restaurantsRes.json();
 
       if (!restaurants || restaurants.length === 0) {
         toast({
@@ -107,14 +88,14 @@ export default function RestaurantOrdersPage() {
       setRestaurantId(restaurant.id);
       setRestaurantZone(restaurant.zone || 'Dhaka');
 
-      const { data: orderData } = await client.models.Order.list({
-        filter: { restaurantId: { eq: restaurant.id } }
-      });
+      const ordersRes = await fetch(`${apiUrl}/api/orders?restaurantId=${restaurant.id}`);
+      if (!ordersRes.ok) throw new Error('Failed to fetch orders');
+      const orderData = await ordersRes.json();
 
       console.log('📦 Initial orders loaded:', orderData?.length || 0);
 
       if (orderData) {
-        const sorted = (orderData as Order[]).sort((a, b) => 
+        const sorted = (orderData as Order[]).sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         setOrders(sorted);
@@ -133,16 +114,24 @@ export default function RestaurantOrdersPage() {
 
   const handleAcceptOrder = async () => {
     if (!selectedOrder) return;
-    
+
     console.log('✅ Accepting order:', selectedOrder.id);
     setIsAccepting(true);
     try {
-      const { data, errors } = await client.models.Order.update({
-        id: selectedOrder.id,
-        status: 'accepted',
-        acceptedAt: new Date().toISOString(),
-        prepTime,
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const updateRes = await fetch(`${apiUrl}/api/orders/${selectedOrder.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'accepted',
+          acceptedAt: new Date().toISOString(),
+          prepTime,
+        })
       });
+
+      if (!updateRes.ok) throw new Error('Failed to accept order');
+      const data = await updateRes.json();
+      const errors = null;
 
       if (errors) {
         console.error('❌ Error accepting order:', errors);
@@ -155,7 +144,7 @@ export default function RestaurantOrdersPage() {
         title: "Order Accepted",
         description: `Prep time: ${prepTime} minutes`,
       });
-      
+
       setAcceptDialogOpen(false);
       setSelectedOrder(null);
       setPrepTime(20);
@@ -184,12 +173,20 @@ export default function RestaurantOrdersPage() {
     console.log('❌ Rejecting order:', selectedOrder.id);
     setIsRejecting(true);
     try {
-      const { data, errors } = await client.models.Order.update({
-        id: selectedOrder.id,
-        status: 'rejected',
-        rejectedAt: new Date().toISOString(),
-        rejectionReason: rejectionReason,
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const updateRes = await fetch(`${apiUrl}/api/orders/${selectedOrder.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'rejected',
+          rejectedAt: new Date().toISOString(),
+          rejectionReason: rejectionReason,
+        })
       });
+
+      if (!updateRes.ok) throw new Error('Failed to reject order');
+      const data = await updateRes.json();
+      const errors = null;
 
       if (errors) {
         console.error('❌ Error rejecting order:', errors);
@@ -202,7 +199,7 @@ export default function RestaurantOrdersPage() {
         title: "Order Rejected",
         description: "Customer has been notified",
       });
-      
+
       setRejectDialogOpen(false);
       setSelectedOrder(null);
       setRejectionReason('');
@@ -221,10 +218,16 @@ export default function RestaurantOrdersPage() {
   const handleMarkPreparing = async (orderId: string) => {
     console.log('👨‍🍳 Marking order as preparing:', orderId);
     try {
-      const { data, errors } = await client.models.Order.update({
-        id: orderId,
-        status: 'preparing',
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const updateRes = await fetch(`${apiUrl}/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'preparing' })
       });
+
+      if (!updateRes.ok) throw new Error('Failed to update status');
+      const data = await updateRes.json();
+      const errors = null;
 
       if (errors) {
         console.error('❌ Error updating status:', errors);
@@ -250,11 +253,16 @@ export default function RestaurantOrdersPage() {
   const handleMarkReady = async (orderId: string, order: Order) => {
     console.log('✅ Marking order as ready:', orderId);
     try {
-      // First update order status
-      const { data: updateData, errors: updateErrors } = await client.models.Order.update({
-        id: orderId,
-        status: 'ready',
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const updateRes = await fetch(`${apiUrl}/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ready' })
       });
+
+      if (!updateRes.ok) throw new Error('Failed to update order');
+      const updateData = await updateRes.json();
+      const updateErrors = null;
 
       if (updateErrors) {
         console.error('❌ Error updating order:', updateErrors);
@@ -288,16 +296,14 @@ export default function RestaurantOrdersPage() {
 
       // Use restaurant zone as primary
       let targetZone = restaurantZone || 'Dhaka';
-      
+
       console.log('🎯 Target zone for riders:', targetZone);
 
-      // Get ALL approved online riders (no filter initially)
-      const { data: riders, errors } = await client.models.Rider.list({
-        filter: {
-          status: { eq: 'approved' },
-          isOnline: { eq: true }
-        }
-      });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const ridersRes = await fetch(`${apiUrl}/api/riders?status=approved&isOnline=true`);
+      if (!ridersRes.ok) throw new Error('Failed to fetch riders');
+      const riders = await ridersRes.json();
+      const errors = null;
 
       if (errors) {
         console.error('❌ Error fetching riders:', errors);
@@ -329,17 +335,17 @@ export default function RestaurantOrdersPage() {
       // Filter riders by zone (flexible matching)
       const ridersInZone = riders.filter((rider: any) => {
         const riderZone = rider.zone?.trim() || '';
-        
+
         // Match logic: exact match OR both are Dhaka/empty
-        const isMatch = 
+        const isMatch =
           riderZone === targetZone ||
           (riderZone === '' && targetZone === 'Dhaka') ||
           (riderZone === 'Dhaka' && targetZone === '') ||
           riderZone === 'Dhaka' || // Accept Dhaka riders for any zone
           targetZone === 'Dhaka';
-        
+
         console.log(`  🔍 Checking ${rider.fullName}: zone="${riderZone}" vs target="${targetZone}" → ${isMatch ? '✅ MATCH' : '❌ NO MATCH'}`);
-        
+
         return isMatch;
       });
 
@@ -359,25 +365,32 @@ export default function RestaurantOrdersPage() {
       console.log('📢 Creating notifications...');
       const notificationPromises = ridersInZone.map(async (rider: any) => {
         console.log(`  📨 Creating notification for: ${rider.fullName} (${rider.id})`);
-        
+
         try {
-          const result = await client.models.RiderNotification.create({
-            riderId: rider.id,
-            orderId: order.id,
-            restaurantName: order.restaurantName,
-            customerAddress: order.customerAddress,
-            orderTotal: order.total,
-            message: `New delivery available: ${order.restaurantName} → ${order.customerAddress}`,
-            isRead: false,
-            createdAt: new Date().toISOString(),
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+          const createRes = await fetch(`${apiUrl}/api/rider-notifications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              riderId: rider.id,
+              orderId: order.id,
+              restaurantName: order.restaurantName,
+              customerAddress: order.customerAddress,
+              orderTotal: order.total,
+              message: `New delivery available: ${order.restaurantName} → ${order.customerAddress}`,
+              isRead: false,
+              createdAt: new Date().toISOString(),
+            })
           });
 
-          if (result.errors) {
+          if (!createRes.ok) {
+            const result = { errors: ['Failed to create notification'] };
             console.error(`  ❌ Failed for ${rider.fullName}:`, result.errors);
-          } else {
-            console.log(`  ✅ Notification created for ${rider.fullName}`);
+            return result;
           }
 
+          const result = await createRes.json();
+          console.log(`  ✅ Notification created for ${rider.fullName}`);
           return result;
         } catch (error) {
           console.error(`  ❌ Error creating notification for ${rider.fullName}:`, error);
@@ -386,7 +399,7 @@ export default function RestaurantOrdersPage() {
       });
 
       const results = await Promise.all(notificationPromises);
-      
+
       // Count successes
       const successCount = results.filter(r => !r.errors).length;
       const failureCount = results.filter(r => r.errors).length;
@@ -491,8 +504,8 @@ export default function RestaurantOrdersPage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {pendingOrders.map(order => (
-                <OrderCard 
-                  key={order.id} 
+                <OrderCard
+                  key={order.id}
                   order={order}
                   onAccept={() => {
                     setSelectedOrder(order);
@@ -521,8 +534,8 @@ export default function RestaurantOrdersPage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {activeOrders.map(order => (
-                <ActiveOrderCard 
-                  key={order.id} 
+                <ActiveOrderCard
+                  key={order.id}
                   order={order}
                   onMarkPreparing={handleMarkPreparing}
                   onMarkReady={handleMarkReady}
@@ -544,8 +557,8 @@ export default function RestaurantOrdersPage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {completedOrders.map(order => (
-                <CompletedOrderCard 
-                  key={order.id} 
+                <CompletedOrderCard
+                  key={order.id}
                   order={order}
                   formatTime={formatTime}
                   getStatusBadge={getStatusBadge}
@@ -565,8 +578,8 @@ export default function RestaurantOrdersPage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {cancelledOrders.map(order => (
-                <CancelledOrderCard 
-                  key={order.id} 
+                <CancelledOrderCard
+                  key={order.id}
                   order={order}
                   formatTime={formatTime}
                   getStatusBadge={getStatusBadge}
@@ -636,9 +649,9 @@ export default function RestaurantOrdersPage() {
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleRejectOrder} 
+            <Button
+              variant="destructive"
+              onClick={handleRejectOrder}
               disabled={isRejecting || !rejectionReason.trim()}
             >
               {isRejecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -674,7 +687,7 @@ function OrderCard({ order, onAccept, onReject, formatTime, getStatusBadge }: an
 
       <CardContent className="space-y-3">
         <Separator />
-        
+
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-muted-foreground" />

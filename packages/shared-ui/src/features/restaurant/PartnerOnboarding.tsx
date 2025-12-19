@@ -15,8 +15,8 @@ import Image from 'next/image';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { useToast } from '../../hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from 'aws-amplify/auth';
-import { uploadData } from 'aws-amplify/storage';
+import { getCurrentUser } from '../../lib/auth';
+import { uploadData } from '../../lib/storage';
 
 
 // Business types
@@ -208,18 +208,19 @@ export default function PartnerRegistrationPage() {
 
       console.log('📤 Uploading photo:', photoFileName);
 
-      // Upload using the path function - this automatically uses identityId
-      const uploadResult = await uploadData({
-        path: ({ identityId }) => `restaurant-photos/${identityId}/${photoFileName}`,
+
+      // Upload using simple string path
+      await uploadData({
+        path: `restaurant-photos/${photoFileName}`,
         data: photoFile,
         options: {
           contentType: photoFile.type,
         },
-      }).result;
+      });
 
-      console.log('✅ Photo uploaded successfully:', uploadResult);
+      console.log('✅ Photo uploaded successfully');
 
-      const storedPhotoPath = uploadResult.path;
+      const storedPhotoPath = `restaurant-photos/${photoFileName}`;
 
       console.log('📝 Storing restaurant data in database...');
       console.log('User ID:', userId);

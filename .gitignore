@@ -5,3 +5,17 @@ build/
 .env
 .env.local
 *.log
+
+# Flutter/Dart
+android/**/build/
+android/**/.dart_tool/
+android/**/.flutter-plugins
+android/**/.flutter-plugins-dependencies
+android/**/.packages
+android/**/.pub-cache/
+android/**/.pub/
+android/**/pubspec.lock
+android/**/*.iml
+android/**/*.ipr
+android/**/*.iws
+android/**/.idea/

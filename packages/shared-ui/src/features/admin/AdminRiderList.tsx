@@ -13,14 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/ta
 // Generate the Amplify Data client
 
 type Rider = {
-  id: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  zone: string;
-  userId: string;
-  status: string;
-  isOnline: boolean;
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    zone: string;
+    userId: string;
+    status: string;
+    isOnline: boolean;
 };
 
 export default function RiderManagementPage() {
@@ -35,9 +35,13 @@ export default function RiderManagementPage() {
     const fetchApplications = useCallback(async () => {
         try {
             setLoading(true);
-            // Fetch all riders from database
-            const { data: ridersData } = await client.models.Rider.list();
-            
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const response = await fetch(`${apiUrl}/api/riders`);
+
+            if (!response.ok) throw new Error('Failed to fetch riders');
+
+            const ridersData = await response.json();
+
             if (ridersData) {
                 const formattedRiders: Rider[] = ridersData.map((r: any) => ({
                     id: r.id,
@@ -49,9 +53,9 @@ export default function RiderManagementPage() {
                     status: r.status || 'pending',
                     isOnline: r.isOnline || false,
                 }));
-                
+
                 setRiders(formattedRiders);
-                
+
                 const pending = formattedRiders.filter(r => r.status === 'pending').length;
                 const approved = formattedRiders.filter(r => r.status === 'approved').length;
                 console.log('Fetched riders:', { pending, approved, total: formattedRiders.length });
@@ -77,32 +81,34 @@ export default function RiderManagementPage() {
     const handleApprove = async (rider: Rider) => {
         // Prevent multiple simultaneous approvals
         if (processingId) return;
-        
+
         setProcessingId(rider.id);
-        
+
         try {
             console.log('Attempting to approve rider:', rider.id);
-            
-            // Update only THIS rider's status - using authenticated mode
-            const result = await client.models.Rider.update({
-                id: rider.id,
-                status: 'approved',
-            }, {
-                authMode: 'userPool'
+
+            // Update rider status via API
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const response = await fetch(`${apiUrl}/api/riders/${rider.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'approved' })
             });
-            
+
+            const result = { data: response.ok, errors: response.ok ? [] : [{ message: 'Failed to update' }] };
+
             console.log('Update result:', result);
-            
+
             if (result.data) {
                 console.log('Rider approval successful:', result.data);
-                
+
                 toast({
                     title: "Rider Approved",
                     description: `${rider.fullName} is now a registered rider.`,
                 });
-                
+
                 // Update local state immediately to reflect change
-                setRiders(prev => prev.map(r => 
+                setRiders(prev => prev.map(r =>
                     r.id === rider.id ? { ...r, status: 'approved' } : r
                 ));
             } else if (result.errors && result.errors.length > 0) {
@@ -120,31 +126,35 @@ export default function RiderManagementPage() {
             setProcessingId(null);
         }
     };
-    
+
     // Function to reject a rider application
     const handleReject = async (riderId: string, riderName: string) => {
         // Prevent multiple simultaneous rejections
         if (processingId) return;
-        
+
         setProcessingId(riderId);
-        
+
         try {
-            // Update only THIS rider's status
-            const result = await client.models.Rider.update({
-                id: riderId,
-                status: 'rejected',
+            // Update rider status via API
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const response = await fetch(`${apiUrl}/api/riders/${riderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'rejected' })
             });
-            
+
+            const result = { data: response.ok };
+
             if (result.data) {
                 console.log('Rider rejection successful:', result.data);
-                
+
                 toast({
                     title: "Rider Rejected",
                     description: `${riderName}'s application has been rejected.`,
                 });
-                
+
                 // Update local state immediately to reflect change
-                setRiders(prev => prev.map(r => 
+                setRiders(prev => prev.map(r =>
                     r.id === riderId ? { ...r, status: 'rejected' } : r
                 ));
             }
@@ -223,17 +233,17 @@ export default function RiderManagementPage() {
                                                     <TableCell>{app.phone}</TableCell>
                                                     <TableCell className="capitalize">{app.zone.replace('-', ' ')}</TableCell>
                                                     <TableCell className="text-right space-x-2">
-                                                        <Button 
+                                                        <Button
                                                             variant="destructive"
-                                                            size="sm" 
+                                                            size="sm"
                                                             onClick={() => handleReject(app.id, app.fullName)}
                                                             disabled={processingId === app.id}
                                                         >
                                                             {processingId === app.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                             Reject
                                                         </Button>
-                                                        <Button 
-                                                            size="sm" 
+                                                        <Button
+                                                            size="sm"
                                                             onClick={() => handleApprove(app)}
                                                             disabled={processingId === app.id}
                                                         >
@@ -289,8 +299,8 @@ export default function RiderManagementPage() {
                                                     <TableCell>{rider.phone}</TableCell>
                                                     <TableCell className="capitalize">{rider.zone.replace('-', ' ')}</TableCell>
                                                     <TableCell>
-                                                        <Badge 
-                                                            variant={rider.isOnline ? 'default' : 'secondary'} 
+                                                        <Badge
+                                                            variant={rider.isOnline ? 'default' : 'secondary'}
                                                             className={rider.isOnline ? 'bg-green-600 hover:bg-green-700' : ''}
                                                         >
                                                             {rider.isOnline ? 'Online' : 'Offline'}

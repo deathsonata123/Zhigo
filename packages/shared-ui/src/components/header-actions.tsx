@@ -19,8 +19,8 @@ import { useToast } from '../hooks/use-toast';
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { cn } from '../lib/utils';
-import { getCurrentUser, signOut, fetchAuthSession } from 'aws-amplify/auth';
-import { Hub } from 'aws-amplify/utils';
+import { getCurrentUser, signOut, fetchAuthSession } from '../lib/auth';
+
 import { OAuthHandler } from './oauth-handler';
 
 // Rider status toggle component - only visible for riders

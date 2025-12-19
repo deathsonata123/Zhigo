@@ -17,8 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
-import { uploadData } from 'aws-amplify/storage';
-import { getUrl } from 'aws-amplify/storage';
+import { uploadData } from '../lib/storage';
+import { getUrl } from '../lib/storage';
 import type { MenuItem } from '@food-delivery/shared-types';
 
 const menuCategories = ["Appetizer", "Main Course", "Dessert", "Beverage", "Other"];
@@ -108,15 +108,16 @@ export function EditMenuItemDialog({ open, onOpenChange, item, onItemUpdated, us
         const timestamp = Date.now();
         const fileName = `${timestamp}-${newImageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
 
-        const uploadResult = await uploadData({
-          path: ({ identityId }) => `menu-images/${identityId}/${fileName}`,
+
+        await uploadData({
+          path: `menu-images/${fileName}`,
           data: newImageFile,
           options: {
             contentType: newImageFile.type,
           }
-        }).result;
+        });
 
-        imageUrl = uploadResult.path;
+        imageUrl = `menu-images/${fileName}`;
         console.log('✅ New image uploaded:', imageUrl);
       }
 

@@ -10,7 +10,7 @@ import { Label } from '../../components/ui/label';
 import { useToast } from '../../hooks/use-toast';
 import { Loader2, Save, Clock, MapPin } from 'lucide-react';
 import { Separator } from '../../components/ui/separator';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from '../../lib/auth';
 
 
 type OpeningHour = {
@@ -40,11 +40,13 @@ export default function HoursPage() {
     try {
       setLoading(true);
       const user = await getCurrentUser();
-      
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
       // Get restaurant owned by current user
-      const { data: restaurants } = await client.models.Restaurant.list({
-        filter: { ownerId: { eq: user.userId } }
-      });
+      const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${user.userId}`);
+      if (!restaurantsRes.ok) throw new Error('Failed to fetch restaurants');
+      const restaurants = await restaurantsRes.json();
 
       if (restaurants && restaurants.length > 0) {
         const restaurant = restaurants[0];
@@ -52,9 +54,9 @@ export default function HoursPage() {
         setRestaurantAddress(restaurant.address || '');
 
         // Fetch existing opening hours
-        const { data: hours } = await client.models.OpeningHours.list({
-          filter: { restaurantId: { eq: restaurant.id } }
-        });
+        const hoursRes = await fetch(`${apiUrl}/api/opening-hours?restaurantId=${restaurant.id}`);
+        if (!hoursRes.ok) throw new Error('Failed to fetch hours');
+        const hours = await hoursRes.json();
 
         if (hours && hours.length > 0) {
           // Map existing hours
@@ -106,25 +108,36 @@ export default function HoursPage() {
     try {
       setSaving(true);
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
       // Save or update each day's hours
       for (const hour of openingHours) {
         if (hour.id.startsWith('temp-')) {
           // Create new record
-          await client.models.OpeningHours.create({
-            restaurantId,
-            dayOfWeek: hour.dayOfWeek,
-            isOpen: hour.isOpen,
-            openTime: hour.openTime,
-            closeTime: hour.closeTime,
+          const createRes = await fetch(`${apiUrl}/api/opening-hours`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              restaurantId,
+              dayOfWeek: hour.dayOfWeek,
+              isOpen: hour.isOpen,
+              openTime: hour.openTime,
+              closeTime: hour.closeTime,
+            })
           });
+          if (!createRes.ok) throw new Error('Failed to create hours');
         } else {
           // Update existing record
-          await client.models.OpeningHours.update({
-            id: hour.id,
-            isOpen: hour.isOpen,
-            openTime: hour.openTime,
-            closeTime: hour.closeTime,
+          const updateRes = await fetch(`${apiUrl}/api/opening-hours/${hour.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              isOpen: hour.isOpen,
+              openTime: hour.openTime,
+              closeTime: hour.closeTime,
+            })
           });
+          if (!updateRes.ok) throw new Error('Failed to update hours');
         }
       }
 
@@ -152,10 +165,15 @@ export default function HoursPage() {
 
     try {
       setSaving(true);
-      await client.models.Restaurant.update({
-        id: restaurantId,
-        address: restaurantAddress,
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+      const updateRes = await fetch(`${apiUrl}/api/restaurants/${restaurantId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: restaurantAddress })
       });
+
+      if (!updateRes.ok) throw new Error('Failed to update restaurant');
 
       toast({
         title: "Success",
@@ -261,7 +279,7 @@ export default function HoursPage() {
                   <div className="w-28">
                     <p className="font-medium">{DAYS[hour.dayOfWeek]}</p>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={hour.isOpen}

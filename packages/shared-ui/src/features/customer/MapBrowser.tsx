@@ -7,7 +7,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import Link from 'next/link';
 import { Button } from '../../components/ui/button';
 import { UtensilsCrossed, Navigation, User, ShoppingCart, LayoutDashboard, Bike, ShieldCheck, Sun, Moon, Sunset, Sunrise, Code2 } from 'lucide-react';
-import { getCurrentUser, signOut, fetchAuthSession } from 'aws-amplify/auth';
+import { getCurrentUser, signOut, fetchAuthSession } from '../../lib/auth';
 import { LoginDialog } from '../../components/login-dialog';
 import { SignupDialog } from '../../components/signup-dialog';
 import {
@@ -39,7 +39,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   const [isSignupOpen, setIsSignupOpen] = useState(false);
   const [user, setUser] = useState<{ email: string; userId: string } | null>(null);
   const [currentLighting, setCurrentLighting] = useState<keyof typeof LIGHTING_PRESETS>('day');
-  
+
   // Track user roles dynamically
   const [isZhigoPartner, setIsZhigoPartner] = useState(false);
   const [isRider, setIsRider] = useState(false);
@@ -56,33 +56,33 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   const fetchUserAndRoles = async () => {
     try {
       const session = await fetchAuthSession({ forceRefresh: true });
-      
+
       if (!session.tokens) {
         throw new Error('No valid session');
       }
-      
+
       const currentUser = await getCurrentUser();
-      
+
       // CRITICAL: Get email from token for Google OAuth users
-      const userEmail = currentUser?.signInDetails?.loginId || 
-                       session.tokens?.idToken?.payload?.email as string ||
-                       currentUser?.username;
-      
+      const userEmail = currentUser?.signInDetails?.loginId ||
+        session.tokens?.idToken?.payload?.email as string ||
+        currentUser?.username;
+
       if (userEmail && currentUser?.userId) {
-        setUser({ 
+        setUser({
           email: userEmail,
-          userId: currentUser.userId 
+          userId: currentUser.userId
         });
-        
+
         // Check if user owns an approved restaurant
         await checkRestaurantOwner(currentUser.userId);
-        
+
         // Check if user is an approved rider
         await checkRider(currentUser.userId);
-        
+
         // Check if user is an approved developer
         await checkDeveloper(currentUser.userId);
-        
+
         // Check if user is admin
         checkAdmin(userEmail);
       }
@@ -100,19 +100,18 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   // Check if user owns a restaurant by querying the Restaurant model
   const checkRestaurantOwner = async (userId: string) => {
     try {
-      const { data: restaurants } = await client.models.Restaurant.list({
-        filter: {
-          ownerId: {
-            eq: userId
-          }
-        }
-      });
-      
-      // User is a partner only if they have at least one approved restaurant
-      const hasApprovedRestaurant = restaurants?.some((r: any) => r.status === 'approved') || false;
-      setIsZhigoPartner(hasApprovedRestaurant);
-      
-      console.log('Restaurant check (Map):', userId, 'Has approved restaurant?', hasApprovedRestaurant);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${userId}`);
+
+      if (restaurantsRes.ok) {
+        const restaurants = await restaurantsRes.json();
+        const hasApprovedRestaurant = restaurants?.some((r: any) => r.status === 'approved') || false;
+        setIsZhigoPartner(hasApprovedRestaurant);
+
+        console.log('Restaurant check (Map):', userId, 'Has approved restaurant?', hasApprovedRestaurant);
+      } else {
+        setIsZhigoPartner(false);
+      }
     } catch (error) {
       console.log('Error checking restaurant ownership:', error);
       setIsZhigoPartner(false);
@@ -122,21 +121,21 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   // Check if user is an approved rider
   const checkRider = async (userId: string) => {
     try {
-      const { data: riders } = await client.models.Rider.list({
-        filter: {
-          userId: {
-            eq: userId
-          }
-        }
-      });
-      
-      // User is a rider only if they have an approved rider account
-      const approvedRider = riders?.find((r: any) => r.status === 'approved');
-      const hasApprovedRider = !!approvedRider;
-      setIsRider(hasApprovedRider);
-      setRiderId(approvedRider?.id || null);
-      
-      console.log('Rider check (Map):', userId, 'Has approved rider?', hasApprovedRider);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const ridersRes = await fetch(`${apiUrl}/api/riders?userId=${userId}`);
+
+      if (ridersRes.ok) {
+        const riders = await ridersRes.json();
+        const approvedRider = riders?.find((r: any) => r.status === 'approved');
+        const hasApprovedRider = !!approvedRider;
+        setIsRider(hasApprovedRider);
+        setRiderId(approvedRider?.id || null);
+
+        console.log('Rider check (Map):', userId, 'Has approved rider?', hasApprovedRider);
+      } else {
+        setIsRider(false);
+        setRiderId(null);
+      }
     } catch (error) {
       console.log('Error checking rider status:', error);
       setIsRider(false);
@@ -147,20 +146,19 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   // Check if user is an approved developer
   const checkDeveloper = async (userId: string) => {
     try {
-      const { data: developers } = await client.models.Developer.list({
-        filter: {
-          userId: {
-            eq: userId
-          }
-        }
-      });
-      
-      // User is a developer only if they have an approved developer account
-      const approvedDeveloper = developers?.find((d: any) => d.status === 'approved');
-      const hasApprovedDeveloper = !!approvedDeveloper;
-      setIsDeveloper(hasApprovedDeveloper);
-      
-      console.log('Developer check (Map):', userId, 'Has approved developer?', hasApprovedDeveloper);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const developersRes = await fetch(`${apiUrl}/api/developers?userId=${userId}`);
+
+      if (developersRes.ok) {
+        const developers = await developersRes.json();
+        const approvedDeveloper = developers?.find((d: any) => d.status === 'approved');
+        const hasApprovedDeveloper = !!approvedDeveloper;
+        setIsDeveloper(hasApprovedDeveloper);
+
+        console.log('Developer check (Map):', userId, 'Has approved developer?', hasApprovedDeveloper);
+      } else {
+        setIsDeveloper(false);
+      }
     } catch (error) {
       console.log('Error checking developer status:', error);
       setIsDeveloper(false);
@@ -202,7 +200,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
     <>
       {/* Vertical sidebar with circular icon buttons */}
       <div className="fixed right-6 top-1/2 -translate-y-1/2 z-20 flex flex-col gap-3">
-        
+
         {/* Restaurants navigation button */}
         <Button
           variant="ghost"
@@ -291,7 +289,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
               {/* Display user email */}
               <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              
+
               {/* Profile link - always visible for authenticated users */}
               <DropdownMenuItem asChild>
                 <Link href="/profile" className="flex items-center">
@@ -299,7 +297,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
                   Profile
                 </Link>
               </DropdownMenuItem>
-              
+
               {/* Restaurant Dashboard - only visible if user has approved restaurant */}
               {isZhigoPartner && (
                 <DropdownMenuItem asChild>
@@ -309,7 +307,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
                   </Link>
                 </DropdownMenuItem>
               )}
-              
+
               {/* Rider Dashboard - only visible if user is an approved rider */}
               {isRider && (
                 <DropdownMenuItem asChild>
@@ -319,7 +317,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
                   </Link>
                 </DropdownMenuItem>
               )}
-              
+
               {/* Developer Dashboard - only visible if user is an approved developer */}
               {isDeveloper && (
                 <DropdownMenuItem asChild>
@@ -329,7 +327,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
                   </Link>
                 </DropdownMenuItem>
               )}
-              
+
               {/* Admin Panel - only visible if user email matches admin email */}
               {isAdmin && (
                 <DropdownMenuItem asChild>
@@ -339,7 +337,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
                   </Link>
                 </DropdownMenuItem>
               )}
-              
+
               <DropdownMenuSeparator />
               {/* Sign out option */}
               <DropdownMenuItem onClick={handleSignOut}>Log out</DropdownMenuItem>
@@ -405,7 +403,7 @@ export default function MapPage() {
 
     map.on('load', () => {
       console.log('Map loaded');
-      
+
       // Add terrain
       map.addSource('mapbox-dem', {
         type: 'raster-dem',
@@ -414,8 +412,8 @@ export default function MapPage() {
         maxzoom: 14
       });
 
-      map.setTerrain({ 
-        source: 'mapbox-dem', 
+      map.setTerrain({
+        source: 'mapbox-dem',
         exaggeration: 1.5
       });
 
@@ -427,11 +425,11 @@ export default function MapPage() {
             // Hide POI and place labels only (not road labels)
             if (layer.type === 'symbol' && layer.id) {
               // Keep road labels visible
-              if (layer.id.includes('road') || 
-                  layer.id.includes('street') || 
-                  layer.id.includes('highway') ||
-                  layer.id.includes('path') ||
-                  layer.id.includes('label-road')) {
+              if (layer.id.includes('road') ||
+                layer.id.includes('street') ||
+                layer.id.includes('highway') ||
+                layer.id.includes('path') ||
+                layer.id.includes('label-road')) {
                 // Keep road labels visible
                 console.log('Keeping visible:', layer.id);
               } else {
@@ -444,7 +442,7 @@ export default function MapPage() {
                 }
               }
             }
-            
+
             // Remove transparency from 3D buildings
             if (layer.type === 'fill-extrusion' && layer.id.includes('building')) {
               try {
@@ -473,8 +471,9 @@ export default function MapPage() {
     <div className="relative w-full h-screen overflow-hidden">
       <MapSidebar onLightingChange={handleLightingChange} />
       <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
-      
-      <style dangerouslySetInnerHTML={{__html: `
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .mapboxgl-ctrl-logo,
         .mapboxgl-ctrl-attrib,
         .mapboxgl-ctrl-scale,

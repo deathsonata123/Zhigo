@@ -14,8 +14,8 @@ import { Label } from '../../components/ui/label';
 import { useToast } from '../../hooks/use-toast';
 import { EditMenuItemDialog } from '../../components/edit-menu-item-dialog';
 // Amplify imports for database operations and authentication
-import { getCurrentUser } from 'aws-amplify/auth';
-import { getUrl } from 'aws-amplify/storage';
+import { getUrl } from '../../lib/storage';
+import { getCurrentUser } from '../../lib/auth';
 
 // Initialize Amplify client for database operations
 
@@ -25,14 +25,14 @@ export default function MenuPage() {
     const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [menuLoading, setMenuLoading] = useState(true);
-    
+
     // Store restaurant ID and user ID for database queries
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-    
+
     // Store signed S3 URLs for images (these expire, so we fetch them dynamically)
     const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
-    
+
     const { toast } = useToast();
 
     // Step 1: Get the current authenticated user when component mounts
@@ -47,48 +47,13 @@ export default function MenuPage() {
         }
     }, [currentUserId]);
 
-    // Step 3: Once we have restaurant ID, fetch menu items and subscribe to real-time updates
     useEffect(() => {
         if (restaurantId) {
             fetchMenuItems();
-            
-            // Subscribe to real-time updates - any changes to menu items will automatically update the UI
-            // This includes: additions, deletions, and updates from any source
-            const subscription = client.models.MenuItem.observeQuery({
-                filter: { restaurantId: { eq: restaurantId } } // Only get items for this restaurant
-            }).subscribe({
-                next: async ({ items }: any) => {
-                    const menuItemsData = items as MenuItem[];
-                    setMenuItems(menuItemsData);
-                    
-                    // Fetch signed URLs for all images from S3
-                    // S3 URLs are temporary and must be regenerated each time
-                    const urls: Record<string, string> = {};
-                    for (const item of menuItemsData) {
-                        if (item.imageUrl) {
-                            try {
-                                const result = await getUrl({ path: item.imageUrl });
-                                urls[item.id] = result.url.toString();
-                            } catch (error) {
-                                console.error(`Error fetching image URL for ${item.id}:`, error);
-                            }
-                        }
-                    }
-                    setImageUrls(urls);
-                    setMenuLoading(false);
-                },
-                error: (error: any) => {
-                    console.error('Subscription error:', error);
-                    toast({
-                        title: "Error",
-                        description: "Failed to sync menu items",
-                        variant: "destructive"
-                    });
-                }
-            });
 
-            // Cleanup: Unsubscribe when component unmounts or restaurantId changes
-            return () => subscription.unsubscribe();
+            // TODO: Implement WebSocket or polling for real-time menu updates
+            // Subscription removed - implement alternative real-time solution
+            // For now, menu will update on component mount and after CRUD operations
         }
     }, [restaurantId]);
 
@@ -118,21 +83,25 @@ export default function MenuPage() {
         if (!currentUserId) return;
 
         try {
-            // Query the Restaurant table for restaurants owned by this user
-            const { data: restaurants } = await client.models.Restaurant.list({
-                filter: { 
-                    ownerId: { eq: currentUserId } // Match the ownerId field with current user
-                }
-            });
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${currentUserId}`);
 
-            if (restaurants && restaurants.length > 0) {
-                // Use the first restaurant (assuming one restaurant per owner)
-                setRestaurantId(restaurants[0].id);
+            if (restaurantsRes.ok) {
+                const restaurants = await restaurantsRes.json();
+                if (restaurants && restaurants.length > 0) {
+                    setRestaurantId(restaurants[0].id);
+                } else {
+                    toast({
+                        title: "No Restaurant Found",
+                        description: "Please register your restaurant first before adding menu items",
+                        variant: "destructive"
+                    });
+                    setMenuLoading(false);
+                }
             } else {
-                // No restaurant found - user needs to register their restaurant first
                 toast({
-                    title: "No Restaurant Found",
-                    description: "Please register your restaurant first before adding menu items",
+                    title: "Error",
+                    description: "Failed to load restaurant information",
                     variant: "destructive"
                 });
                 setMenuLoading(false);
@@ -156,10 +125,11 @@ export default function MenuPage() {
         if (!restaurantId) return;
 
         try {
-            // Query MenuItem table filtered by restaurantId
-            const { data: items } = await client.models.MenuItem.list({
-                filter: { restaurantId: { eq: restaurantId } }
-            });
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const itemsRes = await fetch(`${apiUrl}/api/menu-items?restaurantId=${restaurantId}`);
+
+            if (!itemsRes.ok) throw new Error('Failed to fetch menu items');
+            const items = await itemsRes.json();
 
             const menuItemsData = items as MenuItem[];
             setMenuItems(menuItemsData);
@@ -169,7 +139,6 @@ export default function MenuPage() {
             for (const item of menuItemsData) {
                 if (item.imageUrl) {
                     try {
-                        // getUrl generates a temporary signed URL for accessing S3 objects
                         const result = await getUrl({ path: item.imageUrl });
                         urls[item.id] = result.url.toString();
                     } catch (error) {
@@ -204,16 +173,22 @@ export default function MenuPage() {
      */
     const handleAvailabilityChange = async (itemId: string, newAvailability: boolean) => {
         try {
-            // Update only the isAvailable field in the database
-            await client.models.MenuItem.update({
-                id: itemId,
-                isAvailable: newAvailability
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const updateRes = await fetch(`${apiUrl}/api/menu-items/${itemId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isAvailable: newAvailability })
             });
+
+            if (!updateRes.ok) throw new Error('Failed to update availability');
 
             toast({
                 title: "Success",
                 description: `Item is now ${newAvailability ? 'available' : 'unavailable'}`,
             });
+
+            // Refresh menu items
+            await fetchMenuItems();
         } catch (error) {
             console.error('Error updating availability:', error);
             toast({
@@ -234,14 +209,20 @@ export default function MenuPage() {
         }
 
         try {
-            // Delete the menu item from the database
-            await client.models.MenuItem.delete({ id: itemId });
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const deleteRes = await fetch(`${apiUrl}/api/menu-items/${itemId}`, {
+                method: 'DELETE'
+            });
+
+            if (!deleteRes.ok) throw new Error('Failed to delete menu item');
 
             toast({
                 title: "Success",
                 description: "Menu item deleted successfully",
             });
-            // Note: No need to manually update the UI - the real-time subscription will handle it
+
+            // Refresh menu items
+            await fetchMenuItems();
         } catch (error) {
             console.error('Error deleting item:', error);
             toast({
@@ -276,7 +257,7 @@ export default function MenuPage() {
                     <h1 className="text-4xl font-bold font-headline">Menu Management</h1>
                     <p className="text-muted-foreground mt-2 text-lg">Add, edit, and manage your menu items.</p>
                 </div>
-                <Button 
+                <Button
                     onClick={() => setIsAddDialogOpen(true)}
                     disabled={!restaurantId} // Disable if no restaurant is found
                 >
@@ -284,17 +265,17 @@ export default function MenuPage() {
                     Add Menu Item
                 </Button>
             </div>
-            
+
             {/* Loading state - show skeleton cards while data is being fetched */}
             {menuLoading ? (
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {Array.from({ length: 3 }).map((_, i) => (
                         <Card key={i}>
-                             <CardHeader>
+                            <CardHeader>
                                 <Skeleton className="h-40 w-full rounded-t-lg" />
                                 <Skeleton className="h-6 w-3/4 mt-4" />
                                 <Skeleton className="h-4 w-1/4" />
-                             </CardHeader>
+                            </CardHeader>
                             <CardContent>
                                 <Skeleton className="h-6 w-1/3 mb-2" />
                             </CardContent>
@@ -316,16 +297,16 @@ export default function MenuPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {menuItems.map((item) => (
                         <Card key={item.id} className="flex flex-col">
-                           {/* Menu item image from S3 */}
-                           <div className="relative aspect-video">
-                               <Image 
-                                   src={imageUrls[item.id] || '/placeholder-food.jpg'} // Use signed URL or fallback
-                                   alt={item.name} 
-                                   fill 
-                                   className="object-cover rounded-t-lg" 
-                                   data-ai-hint="restaurant food plate"
-                               />
-                           </div>
+                            {/* Menu item image from S3 */}
+                            <div className="relative aspect-video">
+                                <Image
+                                    src={imageUrls[item.id] || '/placeholder-food.jpg'} // Use signed URL or fallback
+                                    alt={item.name}
+                                    fill
+                                    className="object-cover rounded-t-lg"
+                                    data-ai-hint="restaurant food plate"
+                                />
+                            </div>
                             {/* Menu item details */}
                             <CardHeader className="pb-2">
                                 <CardTitle className="font-headline">{item.name}</CardTitle>
@@ -357,8 +338,8 @@ export default function MenuPage() {
                                     <Button variant="outline" size="icon" onClick={() => handleEditClick(item)}>
                                         <Edit className="h-4 w-4" />
                                     </Button>
-                                    <Button 
-                                        variant="destructive" 
+                                    <Button
+                                        variant="destructive"
                                         size="icon"
                                         onClick={() => handleDeleteItem(item.id)}
                                     >
@@ -373,7 +354,7 @@ export default function MenuPage() {
                 /* Empty state - show when no menu items exist */
                 <div className="border-2 border-dashed rounded-lg p-12 text-center">
                     <p className="text-muted-foreground">
-                        {!restaurantId 
+                        {!restaurantId
                             ? "Please register your restaurant first before adding menu items."
                             : "You haven't added any menu items yet. Click 'Add Menu Item' to get started."
                         }
@@ -383,15 +364,15 @@ export default function MenuPage() {
 
             {/* Add Menu Item Dialog - only render if we have restaurant and user data */}
             {restaurantId && currentUserId && (
-                <AddMenuItemDialog 
-                    open={isAddDialogOpen} 
-                    onOpenChange={setIsAddDialogOpen} 
+                <AddMenuItemDialog
+                    open={isAddDialogOpen}
+                    onOpenChange={setIsAddDialogOpen}
                     onItemAdded={handleItemAdded}
                     restaurantId={restaurantId}
                     userId={currentUserId}
                 />
             )}
-            
+
             {/* Edit Menu Item Dialog - only render when an item is selected */}
             {selectedMenuItem && currentUserId && (
                 <EditMenuItemDialog

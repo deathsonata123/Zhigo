@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/badge';
 import { Separator } from '../../components/ui/separator';
 import { Bike, MapPin, Store, User, Loader2, Package, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '../../hooks/use-toast';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from '../../lib/auth';
 import DeliveryRequestPopup from '../../components/DeliveryRequestPopup';
 import ActiveDeliveryTracking from '../../components/ActiveDeliveryTracking';
 
@@ -50,7 +50,7 @@ export default function RiderDashboard() {
   const [notifications, setNotifications] = useState<RiderNotification[]>([]);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const { toast } = useToast();
-  
+
   // Delivery request popup state
   const [selectedNotification, setSelectedNotification] = useState<RiderNotification | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
@@ -79,7 +79,7 @@ export default function RiderDashboard() {
   useEffect(() => {
     if (isOnline && 'geolocation' in navigator) {
       console.log('🚴 Starting live location tracking...');
-      
+
       // Get initial position
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -105,10 +105,10 @@ export default function RiderDashboard() {
           console.log('📍 Rider location updated:', newLocation);
         },
         (error) => console.error('❌ Geolocation error:', error),
-        { 
-          enableHighAccuracy: true, 
+        {
+          enableHighAccuracy: true,
           maximumAge: 10000, // 10 seconds
-          timeout: 5000 
+          timeout: 5000
         }
       );
     } else if (!isOnline && watchId.current !== null) {
@@ -137,23 +137,23 @@ export default function RiderDashboard() {
     }).subscribe({
       next: ({ items }: any) => {
         console.log('📥 Received notification update:', items.length, 'notifications');
-        const sorted = (items as RiderNotification[]).sort((a, b) => 
+        const sorted = (items as RiderNotification[]).sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-        
+
         const previousPending = notifications.filter(n => !n.isRead && (n.isAccepted === null || n.isAccepted === undefined));
         const newPending = sorted.filter(n => !n.isRead && (n.isAccepted === null || n.isAccepted === undefined));
-        
+
         setNotifications(sorted);
         console.log('📬 Unread notifications:', newPending.length);
-        
+
         // Auto-open popup for new notifications
         if (newPending.length > previousPending.length && newPending.length > 0 && !currentOrder) {
           const latestNotification = newPending[0];
           console.log('🚨 New delivery request! Auto-opening popup');
           setSelectedNotification(latestNotification);
           setPopupOpen(true);
-          
+
           // Play notification sound (optional)
           try {
             const audio = new Audio('/notification.mp3');
@@ -210,7 +210,7 @@ export default function RiderDashboard() {
     try {
       const user = await getCurrentUser();
       console.log('👤 Current user:', user.userId);
-      
+
       const { data: riders } = await client.models.Rider.list({
         filter: { userId: { eq: user.userId } }
       });
@@ -238,7 +238,7 @@ export default function RiderDashboard() {
       console.log('📬 Initial notifications loaded:', notifData?.length || 0);
 
       if (notifData) {
-        const sorted = (notifData as RiderNotification[]).sort((a, b) => 
+        const sorted = (notifData as RiderNotification[]).sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         setNotifications(sorted);
@@ -320,7 +320,7 @@ export default function RiderDashboard() {
 
       setPopupOpen(false);
       setSelectedNotification(null);
-      
+
       // Refresh data
       await fetchRiderData();
     } catch (error) {
@@ -501,7 +501,7 @@ export default function RiderDashboard() {
   const pendingNotifications = notifications.filter(n => !n.isRead && (n.isAccepted === null || n.isAccepted === undefined));
 
   // Get restaurant and customer locations from current order
-  const restaurantLocation = currentOrder 
+  const restaurantLocation = currentOrder
     ? { lat: currentOrder.restaurantLatitude || 23.8103, lng: currentOrder.restaurantLongitude || 90.4125 }
     : { lat: 23.8103, lng: 90.4125 };
 
@@ -585,7 +585,7 @@ export default function RiderDashboard() {
         /* Available Deliveries - Simplified */
         <div>
           <h2 className="text-2xl font-bold mb-4">Available Deliveries</h2>
-          
+
           {!isOnline && (
             <Card className="border-yellow-500 bg-yellow-50">
               <CardContent className="flex items-center gap-3 p-4">
@@ -627,8 +627,8 @@ export default function RiderDashboard() {
                 <p className="text-sm text-muted-foreground mt-2">
                   {pendingNotifications.length} request(s) waiting
                 </p>
-                <Button 
-                  className="mt-4" 
+                <Button
+                  className="mt-4"
                   onClick={() => {
                     setSelectedNotification(pendingNotifications[0]);
                     setPopupOpen(true);

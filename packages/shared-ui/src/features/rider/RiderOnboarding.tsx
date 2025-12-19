@@ -14,8 +14,8 @@ import { Loader2, Bike, Upload, ChevronLeft, ChevronRight, Camera, CheckCircle2 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { Textarea } from '../../components/ui/textarea';
-import { getCurrentUser } from 'aws-amplify/auth';
-import { uploadData } from 'aws-amplify/storage';
+import { getCurrentUser } from '../../lib/auth';
+import { uploadData } from '../../lib/storage';
 import { Progress } from '../../components/ui/progress';
 
 // FIX: Cast client to any to prevent build-time schema validation errors
@@ -47,7 +47,7 @@ const formSchema = z.object({
   faceVerified: z.boolean().refine(val => val === true, { message: "Face verification is required." }),
   faceImageUrl: z.string().min(1, { message: "Face scan is required." }),
   // FIX: Use z.any() for file inputs to avoid complex validation type errors during build
-  nidCard: z.any(), 
+  nidCard: z.any(),
   nomineeNidCard: z.any(),
   hasMotorbike: z.enum(["yes", "no"], { required_error: "Please select if you have a motorbike/E-bike." }),
   vehicleNumber: z.string().min(1, { message: "Vehicle number is required." }),
@@ -83,13 +83,13 @@ async function verifyFaceWithAPI(imageBase64: string, scanType: 'center' | 'left
     });
     return response.json();
   }
-  
+
   // FaceAPI.js example (runs in browser)
   if (process.env.NEXT_PUBLIC_FACE_VERIFICATION_PROVIDER === 'faceapi') {
     // FaceAPI.js detection would happen here
     return { success: true, confidence: 0.95, faceDetected: true };
   }
-  
+
   // For testing: simulate verification
   await new Promise(resolve => setTimeout(resolve, 1500));
   return { success: true, confidence: 0.98, faceDetected: true };
@@ -104,7 +104,7 @@ export function RiderOnboarding() {
   const [faceVerified, setFaceVerified] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStep, setScanStep] = useState<'center' | 'left' | 'right' | 'complete'>('center');
-  const [capturedImages, setCapturedImages] = useState<{center?: string, left?: string, right?: string}>({});
+  const [capturedImages, setCapturedImages] = useState<{ center?: string, left?: string, right?: string }>({});
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -136,12 +136,12 @@ export function RiderOnboarding() {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
           facingMode: 'user'
-        } 
+        }
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -169,17 +169,17 @@ export function RiderOnboarding() {
 
   const captureFrame = (): string | null => {
     if (!videoRef.current || !canvasRef.current) return null;
-    
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
-    
+
     if (!context) return null;
-    
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     return canvas.toDataURL('image/jpeg', 0.8);
   };
 
@@ -208,7 +208,7 @@ export function RiderOnboarding() {
     try {
       // Verify face with real API
       const verification = await verifyFaceWithAPI(frame, scanStep);
-      
+
       if (!verification.success || !verification.faceDetected) {
         toast({
           variant: "destructive",
@@ -239,7 +239,7 @@ export function RiderOnboarding() {
       } else if (scanStep === 'right') {
         setScanProgress(100);
         setScanStep('complete');
-        
+
         toast({
           title: "Processing...",
           description: "Uploading face verification images",
@@ -251,27 +251,27 @@ export function RiderOnboarding() {
           const blob = await (await fetch(imageData)).blob();
           const file = new File([blob], `face-${angle}-${Date.now()}.jpg`, { type: 'image/jpeg' });
           const fileName = `face-scans/${currentUser.userId}-${angle}-${Date.now()}.jpg`;
-          
+
           await uploadData({
             path: fileName,
             data: file,
-          }).result;
-          
+          });
+
           return fileName;
         });
 
         const uploadedUrls = await Promise.all(uploadPromises);
         const primaryUrl = uploadedUrls[0]; // Use center image as primary
-        
+
         form.setValue('faceImageUrl', primaryUrl);
         form.setValue('faceVerified', true);
         setFaceVerified(true);
-        
+
         toast({
           title: "Face Verification Complete! ✓",
           description: "All angles have been successfully verified and uploaded.",
         });
-        
+
         stopCamera();
         setFaceScanning(false);
       }
@@ -282,7 +282,7 @@ export function RiderOnboarding() {
         title: "Verification Failed",
         description: error instanceof Error ? error.message : "Failed to complete face scan. Please try again.",
       });
-      
+
       // Reset on error
       setScanProgress(0);
       setScanStep('center');
@@ -301,13 +301,13 @@ export function RiderOnboarding() {
   async function uploadFile(file: File, folder: string, userId: string): Promise<string> {
     const fileExtension = file.name.split('.').pop();
     const fileName = `${folder}/${userId}-${Date.now()}.${fileExtension}`;
-    
+
     try {
       await uploadData({
         path: fileName,
         data: file,
-      }).result;
-      
+      });
+
       return fileName;
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -340,18 +340,18 @@ export function RiderOnboarding() {
     try {
       const currentUser = await getCurrentUser();
       const userEmail = currentUser?.signInDetails?.loginId || '';
-      
+      const userId = currentUser.userId;
+
       if (!userEmail) {
         throw new Error('You must be logged in to submit a rider application.');
       }
 
-      const { data: existingRiders } = await client.models.Rider.list({
-        filter: {
-          userId: {
-            eq: currentUser.userId
-          }
-        }
-      });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+      // Check for existing rider
+      const ridersRes = await fetch(`${apiUrl}/api/riders?userId=${userId}`);
+      if (!ridersRes.ok) throw new Error('Failed to check rider status');
+      const existingRiders = await ridersRes.json();
 
       if (existingRiders && existingRiders.length > 0) {
         const existingRider = existingRiders[0];
@@ -387,29 +387,24 @@ export function RiderOnboarding() {
         bikeRegistrationUrl = await uploadFile(values.bikeRegistration, 'bike-registrations', currentUser.userId);
       }
 
-      await client.models.Rider.create({
-        fullName: values.fullName,
-        email: userEmail,
-        phone: values.phone,
-        zone: values.zone,
-        userId: currentUser.userId,
-        status: 'pending',
-        isOnline: false,
-        birthday: values.birthday,
-        gender: values.gender,
-        presentAddress: values.presentAddress,
-        faceImageUrl: values.faceImageUrl,
-        nidCardUrl,
-        nomineeNidCardUrl: nomineeNidUrl,
-        hasMotorbike: values.hasMotorbike === 'yes',
-        vehicleNumber: values.vehicleNumber,
-        drivingLicenseUrl,
-        bikeRegistrationUrl,
-        emergencyContactName: values.emergencyContactName,
-        emergencyContactNumber: values.emergencyContactNumber,
-        hearAbout: values.hearAbout,
-        riderCaptainId: values.riderCaptainId || null,
+      // Create rider via API
+      const createRes = await fetch(`${apiUrl}/api/riders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          fullName: values.fullName,
+          email: userEmail,
+          phone: values.phone,
+          zone: values.zone,
+          vehicleType: values.hasMotorbike === 'yes' ? 'motorbike' : 'bike',
+          vehicleNumber: values.vehicleNumber,
+          status: 'pending',
+          isOnline: false,
+        })
       });
+
+      if (!createRes.ok) throw new Error('Failed to create rider');
 
       toast({
         title: "Application Submitted!",
@@ -438,23 +433,22 @@ export function RiderOnboarding() {
         <CardHeader>
           <div className="mx-auto text-center mb-4">
             <div className="inline-block bg-primary/10 p-3 rounded-full">
-              <Bike className="h-10 w-10 text-primary"/>
+              <Bike className="h-10 w-10 text-primary" />
             </div>
           </div>
           <CardTitle className="text-center text-3xl font-headline">Become a Delivery Rider</CardTitle>
           <CardDescription className="text-center text-muted-foreground pt-2">
             Step {currentStep + 1} of {STEPS.length}: {STEPS[currentStep].title}
           </CardDescription>
-          
+
           <div className="mt-6">
             <div className="flex justify-between mb-2">
               {STEPS.map((step, index) => (
                 <div key={index} className="flex flex-col items-center flex-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                    index < currentStep ? 'bg-primary text-primary-foreground' :
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${index < currentStep ? 'bg-primary text-primary-foreground' :
                     index === currentStep ? 'bg-primary text-primary-foreground ring-4 ring-primary/20' :
-                    'bg-muted text-muted-foreground'
-                  }`}>
+                      'bg-muted text-muted-foreground'
+                    }`}>
                     {index < currentStep ? <CheckCircle2 className="h-5 w-5" /> : index + 1}
                   </div>
                   <span className="text-xs mt-1 text-center hidden sm:block">{step.title}</span>
@@ -468,47 +462,47 @@ export function RiderOnboarding() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              
+
               {/* Step 1: Personal Information */}
               {currentStep === 0 && (
                 <div className="space-y-4 animate-in fade-in duration-300">
                   <FormField control={form.control} name="fullName" render={({ field }) => (
-                      <FormItem><FormLabel>Full Name *</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Full Name *</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                   <FormField control={form.control} name="birthday" render={({ field }) => (
-                      <FormItem><FormLabel>Birthday (MM/DD/YYYY) *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Birthday (MM/DD/YYYY) *</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                   <FormField control={form.control} name="gender" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Gender *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select your gender" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+                    <FormItem>
+                      <FormLabel>Gender *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select your gender" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
                   )} />
-                   <FormField control={form.control} name="phone" render={({ field }) => (
-                      <FormItem><FormLabel>Phone *</FormLabel><FormControl><Input placeholder="123" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormField control={form.control} name="phone" render={({ field }) => (
+                    <FormItem><FormLabel>Phone *</FormLabel><FormControl><Input placeholder="123" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
-                   <FormField control={form.control} name="presentAddress" render={({ field }) => (
-                      <FormItem><FormLabel>Address *</FormLabel><FormControl><Textarea placeholder="Address" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormField control={form.control} name="presentAddress" render={({ field }) => (
+                    <FormItem><FormLabel>Address *</FormLabel><FormControl><Textarea placeholder="Address" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
-                   <FormField control={form.control} name="zone" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Zone *</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select Zone" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                             {zones.map(z => <SelectItem key={z.value} value={z.value}>{z.label}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
+                  <FormField control={form.control} name="zone" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Zone *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select Zone" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          {zones.map(z => <SelectItem key={z.value} value={z.value}>{z.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
                   )} />
                 </div>
               )}
@@ -563,17 +557,17 @@ export function RiderOnboarding() {
                       </div>
 
                       {scanStep !== 'complete' && (
-                        <Button 
-                          type="button" 
-                          onClick={performScanStep} 
+                        <Button
+                          type="button"
+                          onClick={performScanStep}
                           className="w-full"
                         >
                           Capture
                         </Button>
                       )}
-                      
-                      <Button 
-                        type="button" 
+
+                      <Button
+                        type="button"
                         variant="outline"
                         onClick={() => {
                           stopCamera();
@@ -598,8 +592,8 @@ export function RiderOnboarding() {
                       <p className="text-sm text-muted-foreground text-center">
                         Your identity has been successfully verified. You can proceed to the next step.
                       </p>
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         variant="outline"
                         onClick={() => {
                           setFaceVerified(false);

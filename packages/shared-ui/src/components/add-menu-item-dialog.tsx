@@ -22,7 +22,7 @@ import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
 
-import { uploadData } from "aws-amplify/storage";
+import { uploadData } from "../lib/storage";
 
 const menuCategories = ["Appetizer", "Main Course", "Dessert", "Beverage", "Other"];
 
@@ -87,13 +87,13 @@ export function AddMenuItemDialog({
         const timestamp = Date.now();
         const fileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
 
-        const uploadResult = await uploadData({
-          path: ({ identityId }) => `menu-images/${identityId}/${fileName}`,
+        await uploadData({
+          path: `menu-images/${fileName}`,
           data: file,
           options: { contentType: file.type },
-        }).result;
+        });
 
-        imageUrl = uploadResult.path;
+        imageUrl = `menu-images/${fileName}`;
         console.log('✅ Image uploaded successfully:', imageUrl);
       }
 

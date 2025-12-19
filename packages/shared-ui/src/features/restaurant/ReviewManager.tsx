@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { Badge } from '../../components/ui/badge';
 import { Separator } from '../../components/ui/separator';
 import { Star, TrendingUp, MessageSquare, Calendar, Loader2 } from 'lucide-react';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from '../../lib/auth';
 import { format } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
@@ -52,17 +52,19 @@ export default function ReviewsPage() {
       const user = await getCurrentUser();
 
       // Get restaurant owned by current user
-      const { data: restaurants } = await client.models.Restaurant.list({
-        filter: { ownerId: { eq: user.userId } },
-      });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+      const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${user.userId}`);
+      if (!restaurantsRes.ok) throw new Error('Failed to fetch restaurants');
+      const restaurants = await restaurantsRes.json();
 
       if (restaurants && restaurants.length > 0) {
         const restaurantId = restaurants[0].id;
 
         // Fetch all reviews for this restaurant
-        const { data: reviewData } = await client.models.Review.list({
-          filter: { restaurantId: { eq: restaurantId } },
-        });
+        const reviewsRes = await fetch(`${apiUrl}/api/reviews?restaurantId=${restaurantId}`);
+        if (!reviewsRes.ok) throw new Error('Failed to fetch reviews');
+        const reviewData = await reviewsRes.json();
 
         if (reviewData && reviewData.length > 0) {
           const mappedReviews = reviewData.map((r: any) => ({
@@ -129,9 +131,8 @@ export default function ReviewsPage() {
         {Array.from({ length: 5 }).map((_, i) => (
           <Star
             key={i}
-            className={`${sizeClass} ${
-              i < rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'
-            }`}
+            className={`${sizeClass} ${i < rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'
+              }`}
           />
         ))}
       </div>

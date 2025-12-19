@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Badge } from "../../components/ui/badge";
 import { Separator } from "../../components/ui/separator";
 import { Loader2, DollarSign, TrendingUp, Calendar, Wallet } from "lucide-react";
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from '../../lib/auth';
 
 
 type Order = {
@@ -33,11 +33,13 @@ export default function RiderEarningsPage() {
         setError(null);
         try {
             const user = await getCurrentUser();
-            
+
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
             // Get rider profile
-            const { data: riders } = await client.models.Rider.list({
-                filter: { userId: { eq: user.userId } }
-            });
+            const ridersRes = await fetch(`${apiUrl}/api/riders?userId=${user.userId}`);
+            if (!ridersRes.ok) throw new Error('Failed to fetch rider');
+            const riders = await ridersRes.json();
 
             if (!riders || riders.length === 0) {
                 setError('No rider profile found');
@@ -47,21 +49,18 @@ export default function RiderEarningsPage() {
 
             const rider = riders[0];
 
-            // Get all delivered orders for this rider
-            const { data: orderData } = await client.models.Order.list({
-                filter: { 
-                    riderId: { eq: rider.id }
-                }
-            });
-
+            // Get delivered orders
+            const ordersRes = await fetch(`${apiUrl}/api/orders?riderId=${rider.id}&status=delivered`);
+            if (!ordersRes.ok) throw new Error('Failed to fetch orders');
+            const orderData = await ordersRes.json();
             if (orderData) {
                 // Filter delivered orders and sort
                 const deliveredOrders = orderData
                     .filter((o: any) => o.status === 'delivered')
-                    .sort((a: any, b: any) => 
+                    .sort((a: any, b: any) =>
                         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                     ) as Order[];
-                
+
                 setOrders(deliveredOrders);
             }
         } catch (error) {
@@ -75,9 +74,9 @@ export default function RiderEarningsPage() {
     const formatDate = (dateString: string) => {
         try {
             const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
                 year: 'numeric'
             });
         } catch {
@@ -222,7 +221,7 @@ export default function RiderEarningsPage() {
                 <CardHeader>
                     <CardTitle>Delivery History</CardTitle>
                     <CardDescription>
-                        {totalDeliveries > 0 
+                        {totalDeliveries > 0
                             ? `${totalDeliveries} completed ${totalDeliveries === 1 ? 'delivery' : 'deliveries'}`
                             : 'No completed deliveries yet'
                         }
@@ -241,7 +240,7 @@ export default function RiderEarningsPage() {
                         <div className="space-y-6">
                             {Object.entries(ordersByDate).map(([date, dateOrders]) => {
                                 const dateEarnings = dateOrders.reduce(
-                                    (sum, order) => sum + deliveryFeePerOrder + (Number(order.tip) || 0), 
+                                    (sum, order) => sum + deliveryFeePerOrder + (Number(order.tip) || 0),
                                     0
                                 );
 

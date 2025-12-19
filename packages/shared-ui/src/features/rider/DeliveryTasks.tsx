@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Badge } from "../../components/ui/badge";
 import { Separator } from "../../components/ui/separator";
 import { Loader2, Package, MapPin, Store, Calendar, DollarSign } from "lucide-react";
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from '../../lib/auth';
 
 
 type Order = {
@@ -33,11 +33,13 @@ export default function RiderOrdersPage() {
         setLoading(true);
         try {
             const user = await getCurrentUser();
-            
+
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
             // Get rider profile
-            const { data: riders } = await client.models.Rider.list({
-                filter: { userId: { eq: user.userId } }
-            });
+            const ridersRes = await fetch(`${apiUrl}/api/riders?userId=${user.userId}`);
+            if (!ridersRes.ok) throw new Error('Failed to fetch rider');
+            const riders = await ridersRes.json();
 
             if (!riders || riders.length === 0) {
                 return;
@@ -47,12 +49,12 @@ export default function RiderOrdersPage() {
             setRiderId(rider.id);
 
             // Get all orders for this rider
-            const { data: orderData } = await client.models.Order.list({
-                filter: { riderId: { eq: rider.id } }
-            });
+            const ordersRes = await fetch(`${apiUrl}/api/orders?riderId=${rider.id}`);
+            if (!ordersRes.ok) throw new Error('Failed to fetch orders');
+            const orderData = await ordersRes.json();
 
             if (orderData) {
-                const sorted = (orderData as Order[]).sort((a, b) => 
+                const sorted = (orderData as Order[]).sort((a, b) =>
                     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
                 );
                 setOrders(sorted);
@@ -66,9 +68,9 @@ export default function RiderOrdersPage() {
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
             year: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
@@ -136,7 +138,7 @@ export default function RiderOrdersPage() {
                 <CardHeader>
                     <CardTitle>Order History</CardTitle>
                     <CardDescription>
-                        {orders.length > 0 
+                        {orders.length > 0
                             ? `${orders.length} delivery ${orders.length === 1 ? 'order' : 'orders'} completed`
                             : 'No delivery orders yet'
                         }

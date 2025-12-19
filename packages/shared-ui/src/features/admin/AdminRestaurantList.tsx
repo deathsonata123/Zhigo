@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../comp
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Check, X, Mail, Phone, MapPin, RefreshCw, Loader2 } from 'lucide-react';
-import { getUrl } from 'aws-amplify/storage';
+import { getUrl } from '../../lib/storage';
 import Image from 'next/image';
 import { useToast } from '../../hooks/use-toast';
 import { Skeleton } from '../../components/ui/skeleton';
@@ -40,13 +40,18 @@ export default function RestaurantApprovalsPage() {
   const fetchRestaurants = async () => {
     try {
       setLoading(true);
-      const response = await client.models.Restaurant.list();
-      
-      if (response.data) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/restaurants`);
+
+      if (!response.ok) throw new Error('Failed to fetch restaurants');
+
+      const data = await response.json();
+
+      if (data) {
         const restaurantsWithImages = await Promise.all(
-          response.data.map(async (restaurant: any) => {
+          data.map(async (restaurant: any) => {
             let imageUrl = 'https://picsum.photos/seed/default/600/400';
-            
+
             if (restaurant.photoUrl) {
               try {
                 const urlResult = await getUrl({ path: restaurant.photoUrl });
@@ -87,13 +92,17 @@ export default function RestaurantApprovalsPage() {
 
   const handleApprove = async (restaurantId: string, restaurantName: string) => {
     if (processingId) return;
-    
+
     setProcessingId(restaurantId);
     try {
-      const result = await client.models.Restaurant.update({
-        id: restaurantId,
-        status: 'approved',
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/restaurants/${restaurantId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'approved' })
       });
+
+      const result = { data: response.ok };
 
       if (result.data) {
         toast({
@@ -101,7 +110,7 @@ export default function RestaurantApprovalsPage() {
           description: `${restaurantName} is now live!`,
         });
 
-        setRestaurants(prev => prev.map(r => 
+        setRestaurants(prev => prev.map(r =>
           r.id === restaurantId ? { ...r, status: 'approved' } : r
         ));
       }
@@ -119,13 +128,17 @@ export default function RestaurantApprovalsPage() {
 
   const handleReject = async (restaurantId: string, restaurantName: string) => {
     if (processingId) return;
-    
+
     setProcessingId(restaurantId);
     try {
-      const result = await client.models.Restaurant.update({
-        id: restaurantId,
-        status: 'rejected',
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/restaurants/${restaurantId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'rejected' })
       });
+
+      const result = { data: response.ok };
 
       if (result.data) {
         toast({
@@ -133,7 +146,7 @@ export default function RestaurantApprovalsPage() {
           description: `${restaurantName} has been rejected.`,
         });
 
-        setRestaurants(prev => prev.map(r => 
+        setRestaurants(prev => prev.map(r =>
           r.id === restaurantId ? { ...r, status: 'rejected' } : r
         ));
       }

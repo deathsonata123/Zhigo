@@ -18,8 +18,8 @@ import { Label } from '../../components/ui/label';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { useToast } from '../../hooks/use-toast';
 import Link from 'next/link';
-import { getUrl } from 'aws-amplify/storage';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getUrl } from '../../lib/storage';
+import { getCurrentUser } from '../../lib/auth';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import {
   Dialog,
@@ -156,7 +156,10 @@ export function RestaurantDetails({ restaurantId: id }: RestaurantDetailsProps) 
       try {
         setLoading(true);
 
-        const { data: restaurantData } = await client.models.Restaurant.get({ id });
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const restaurantRes = await fetch(`${apiUrl}/api/restaurants/${id}`);
+        if (!restaurantRes.ok) return;
+        const restaurantData = await restaurantRes.json();
 
         if (!restaurantData) {
           return;
@@ -187,9 +190,9 @@ export function RestaurantDetails({ restaurantId: id }: RestaurantDetailsProps) 
           status: restaurantData.status || '',
         });
 
-        const { data: menuData } = await client.models.MenuItem.list({
-          filter: { restaurantId: { eq: id } }
-        });
+        const menuRes = await fetch(`${apiUrl}/api/menu-items?restaurantId=${id}`);
+        if (!menuRes.ok) throw new Error('Failed to fetch menu');
+        const menuData = await menuRes.json();
 
         if (menuData && menuData.length > 0) {
           const urls: Record<string, string> = {};
@@ -229,9 +232,9 @@ export function RestaurantDetails({ restaurantId: id }: RestaurantDetailsProps) 
           setMenuItems([]);
         }
 
-        const { data: hoursData } = await client.models.OpeningHours.list({
-          filter: { restaurantId: { eq: id } }
-        });
+        const hoursRes = await fetch(`${apiUrl}/api/opening-hours?restaurantId=${id}`);
+        if (!hoursRes.ok) throw new Error('Failed to fetch hours');
+        const hoursData = await hoursRes.json();
 
         if (hoursData && hoursData.length > 0) {
           // FIX 2: Explicit 'any' to fix implicit any error in sort
@@ -247,9 +250,9 @@ export function RestaurantDetails({ restaurantId: id }: RestaurantDetailsProps) 
           setOpeningHours([]);
         }
 
-        const { data: reviewData } = await client.models.Review.list({
-          filter: { restaurantId: { eq: id } }
-        });
+        const reviewRes = await fetch(`${apiUrl}/api/reviews?restaurantId=${id}`);
+        if (!reviewRes.ok) throw new Error('Failed to fetch reviews');
+        const reviewData = await reviewRes.json();
 
         if (reviewData && reviewData.length > 0) {
           // FIX 3: Explicit 'any' to fix implicit any error
@@ -304,14 +307,20 @@ export function RestaurantDetails({ restaurantId: id }: RestaurantDetailsProps) 
 
       const userName = user.signInDetails?.loginId?.split('@')[0] || 'Customer';
 
-      await client.models.Review.create({
-        restaurantId: id,
-        userId: user.userId,
-        userName: userName,
-        rating: reviewRating,
-        comment: reviewComment,
-        orderType: reviewOrderType,
+      const createRes = await fetch(`${apiUrl}/api/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurantId: id,
+          userId: user.userId,
+          userName: userName,
+          rating: reviewRating,
+          comment: reviewComment,
+          orderType: reviewOrderType,
+        })
       });
+
+      if (!createRes.ok) throw new Error('Failed to create review');
 
       toast({
         title: "Review Submitted",
@@ -323,9 +332,9 @@ export function RestaurantDetails({ restaurantId: id }: RestaurantDetailsProps) 
       setReviewComment('');
       setReviewOrderType('delivery');
 
-      const { data: reviewData } = await client.models.Review.list({
-        filter: { restaurantId: { eq: id } }
-      });
+      const refreshRes = await fetch(`${apiUrl}/api/reviews?restaurantId=${id}`);
+      if (!refreshRes.ok) throw new Error('Failed to refresh reviews');
+      const reviewData = await refreshRes.json();
 
       if (reviewData && reviewData.length > 0) {
         // Explicit typing fixes

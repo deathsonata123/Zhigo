@@ -9,13 +9,13 @@ import { Textarea } from "../../components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { Separator } from "../../components/ui/separator";
 import { Badge } from "../../components/ui/badge";
-import { 
-  User, 
-  MapPin, 
-  Bell, 
-  Lock, 
-  CreditCard, 
-  Shield, 
+import {
+  User,
+  MapPin,
+  Bell,
+  Lock,
+  CreditCard,
+  Shield,
   Trash2,
   Plus,
   Camera,
@@ -29,8 +29,8 @@ import {
   Check,
   X
 } from 'lucide-react';
-import { uploadData, getUrl, remove } from 'aws-amplify/storage';
-import { getCurrentUser, updatePassword } from 'aws-amplify/auth';
+import { uploadData, getUrl, remove } from '../../lib/storage';
+import { getCurrentUser, updatePassword } from '../../lib/auth';
 import { toast } from 'sonner';
 
 
@@ -102,10 +102,12 @@ export default function SettingsPage() {
       const user = await getCurrentUser();
       setCurrentUser(user);
 
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
       // Fetch user profile
-      const { data: profiles } = await client.models.UserProfile.list({
-        filter: { userId: { eq: user.userId } }
-      });
+      const profilesRes = await fetch(`${apiUrl}/api/users?userId=${user.userId}`);
+      if (!profilesRes.ok) throw new Error('Failed to fetch profile');
+      const profiles = await profilesRes.json();
 
       if (profiles && profiles.length > 0) {
         const profile = profiles[0];
@@ -124,16 +126,22 @@ export default function SettingsPage() {
         }
 
         // Fetch addresses
-        const { data: userAddresses } = await client.models.Address.list({
-          filter: { userId: { eq: user.userId } }
-        });
+        const addressesRes = await fetch(`${apiUrl}/api/addresses?userId=${user.userId}`);
+        if (!addressesRes.ok) throw new Error('Failed to fetch addresses');
+        const userAddresses = await addressesRes.json();
         setAddresses(userAddresses as Address[]);
       } else {
         // Create initial profile
-        const { data: newProfile } = await client.models.UserProfile.create({
-          userId: user.userId,
-          email: user.signInDetails?.loginId || '',
+        const createRes = await fetch(`${apiUrl}/api/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.userId,
+            email: user.signInDetails?.loginId || '',
+          })
         });
+        if (!createRes.ok) throw new Error('Failed to create profile');
+        const newProfile = await createRes.json();
         setUserProfile(newProfile as UserProfile);
       }
     } catch (error) {
@@ -163,14 +171,16 @@ export default function SettingsPage() {
       await uploadData({
         path: fileName,
         data: file,
-      }).result;
+      });
 
       // Update profile
       if (userProfile?.id) {
-        await client.models.UserProfile.update({
-          id: userProfile.id,
-          photoUrl: fileName
+        const updateRes = await fetch(`${apiUrl}/api/users/${userProfile.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ photoUrl: fileName })
         });
+        if (!updateRes.ok) throw new Error('Failed to update profile');
 
         const url = await getUrl({ path: fileName });
         setProfilePhotoUrl(url.url.toString());
@@ -190,13 +200,18 @@ export default function SettingsPage() {
 
     try {
       setSaving(true);
-      await client.models.UserProfile.update({
-        id: userProfile.id,
-        fullName: profileForm.fullName,
-        phone: profileForm.phone,
-        dateOfBirth: profileForm.dateOfBirth,
-        bio: profileForm.bio
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const updateRes = await fetch(`${apiUrl}/api/users/${userProfile.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: profileForm.fullName,
+          phone: profileForm.phone,
+          dateOfBirth: profileForm.dateOfBirth,
+          bio: profileForm.bio
+        })
       });
+      if (!updateRes.ok) throw new Error('Failed to update profile');
       toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -243,16 +258,23 @@ export default function SettingsPage() {
 
     try {
       setSaving(true);
-      const { data: newAddress } = await client.models.Address.create({
-        userId: currentUser.userId,
-        label: addressForm.label,
-        street: addressForm.street,
-        city: addressForm.city,
-        state: addressForm.state,
-        zipCode: addressForm.zipCode,
-        country: addressForm.country || 'Bangladesh',
-        isDefault: addressForm.isDefault
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const createRes = await fetch(`${apiUrl}/api/addresses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.userId,
+          label: addressForm.label,
+          street: addressForm.street,
+          city: addressForm.city,
+          state: addressForm.state,
+          zipCode: addressForm.zipCode,
+          country: addressForm.country || 'Bangladesh',
+          isDefault: addressForm.isDefault
+        })
       });
+      if (!createRes.ok) throw new Error('Failed to create address');
+      const newAddress = await createRes.json();
 
       setAddresses([...addresses, newAddress as Address]);
       setAddressForm({
@@ -277,7 +299,11 @@ export default function SettingsPage() {
   // Delete address
   const handleDeleteAddress = async (id: string) => {
     try {
-      await client.models.Address.delete({ id });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const deleteRes = await fetch(`${apiUrl}/api/addresses/${id}`, {
+        method: 'DELETE'
+      });
+      if (!deleteRes.ok) throw new Error('Failed to delete address');
       setAddresses(addresses.filter(addr => addr.id !== id));
       toast.success('Address deleted successfully');
     } catch (error) {
@@ -289,12 +315,14 @@ export default function SettingsPage() {
   // Set default address
   const handleSetDefaultAddress = async (id: string) => {
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       // Remove default from all addresses
       await Promise.all(
-        addresses.map(addr => 
-          client.models.Address.update({
-            id: addr.id,
-            isDefault: addr.id === id
+        addresses.map(addr =>
+          fetch(`${apiUrl}/api/addresses/${addr.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isDefault: addr.id === id })
           })
         )
       );
@@ -380,11 +408,10 @@ export default function SettingsPage() {
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                        activeTab === item.id
-                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === item.id
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
+                        : 'text-gray-600 hover:bg-gray-100'
+                        }`}
                     >
                       <Icon className="h-5 w-5" />
                       <span className="font-medium">{item.label}</span>
@@ -421,7 +448,7 @@ export default function SettingsPage() {
                           <Input
                             id="fullName"
                             value={profileForm.fullName}
-                            onChange={(e) => setProfileForm({...profileForm, fullName: e.target.value})}
+                            onChange={(e) => setProfileForm({ ...profileForm, fullName: e.target.value })}
                             className="pl-10 border-gray-200 focus:border-blue-500"
                             placeholder="Enter your full name"
                           />
@@ -448,7 +475,7 @@ export default function SettingsPage() {
                           <Input
                             id="phone"
                             value={profileForm.phone}
-                            onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
+                            onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                             className="pl-10 border-gray-200 focus:border-blue-500"
                             placeholder="+880 1234567890"
                           />
@@ -463,7 +490,7 @@ export default function SettingsPage() {
                             id="dob"
                             type="date"
                             value={profileForm.dateOfBirth}
-                            onChange={(e) => setProfileForm({...profileForm, dateOfBirth: e.target.value})}
+                            onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
                             className="pl-10 border-gray-200 focus:border-blue-500"
                           />
                         </div>
@@ -475,7 +502,7 @@ export default function SettingsPage() {
                       <Textarea
                         id="bio"
                         value={profileForm.bio}
-                        onChange={(e) => setProfileForm({...profileForm, bio: e.target.value})}
+                        onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
                         className="border-gray-200 focus:border-blue-500 min-h-[100px]"
                         placeholder="Tell us about yourself..."
                       />
@@ -504,13 +531,13 @@ export default function SettingsPage() {
                     <Card className="mb-6 bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
                       <div className="p-6 space-y-4">
                         <h3 className="font-semibold text-lg">New Address</h3>
-                        
+
                         <div className="grid md:grid-cols-3 gap-4">
                           <div className="space-y-2">
                             <Label>Address Type</Label>
                             <select
                               value={addressForm.label}
-                              onChange={(e) => setAddressForm({...addressForm, label: e.target.value})}
+                              onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
                               className="w-full px-3 py-2 border rounded-lg"
                             >
                               <option value="Home">Home</option>
@@ -518,12 +545,12 @@ export default function SettingsPage() {
                               <option value="Other">Other</option>
                             </select>
                           </div>
-                          
+
                           <div className="space-y-2 md:col-span-2">
                             <Label>Street Address</Label>
                             <Input
                               value={addressForm.street}
-                              onChange={(e) => setAddressForm({...addressForm, street: e.target.value})}
+                              onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
                               placeholder="123 Main Street"
                             />
                           </div>
@@ -532,7 +559,7 @@ export default function SettingsPage() {
                             <Label>City</Label>
                             <Input
                               value={addressForm.city}
-                              onChange={(e) => setAddressForm({...addressForm, city: e.target.value})}
+                              onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
                               placeholder="Dhaka"
                             />
                           </div>
@@ -541,7 +568,7 @@ export default function SettingsPage() {
                             <Label>State/Division</Label>
                             <Input
                               value={addressForm.state}
-                              onChange={(e) => setAddressForm({...addressForm, state: e.target.value})}
+                              onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
                               placeholder="Dhaka Division"
                             />
                           </div>
@@ -550,7 +577,7 @@ export default function SettingsPage() {
                             <Label>ZIP Code</Label>
                             <Input
                               value={addressForm.zipCode}
-                              onChange={(e) => setAddressForm({...addressForm, zipCode: e.target.value})}
+                              onChange={(e) => setAddressForm({ ...addressForm, zipCode: e.target.value })}
                               placeholder="1000"
                             />
                           </div>
@@ -561,7 +588,7 @@ export default function SettingsPage() {
                             type="checkbox"
                             id="defaultAddress"
                             checked={addressForm.isDefault}
-                            onChange={(e) => setAddressForm({...addressForm, isDefault: e.target.checked})}
+                            onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
                             className="rounded"
                           />
                           <Label htmlFor="defaultAddress" className="cursor-pointer">Set as default address</Label>
@@ -665,7 +692,7 @@ export default function SettingsPage() {
                                   id="currentPassword"
                                   type="password"
                                   value={passwordForm.currentPassword}
-                                  onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                                   placeholder="Enter current password"
                                 />
                               </div>
@@ -676,7 +703,7 @@ export default function SettingsPage() {
                                   id="newPassword"
                                   type="password"
                                   value={passwordForm.newPassword}
-                                  onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                                   placeholder="Enter new password"
                                 />
                               </div>
@@ -687,13 +714,13 @@ export default function SettingsPage() {
                                   id="confirmPassword"
                                   type="password"
                                   value={passwordForm.confirmPassword}
-                                  onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                                   placeholder="Confirm new password"
                                 />
                               </div>
 
-                              <Button 
-                                onClick={handleChangePassword} 
+                              <Button
+                                onClick={handleChangePassword}
                                 disabled={saving || !passwordForm.currentPassword || !passwordForm.newPassword}
                                 className="bg-gradient-to-r from-amber-600 to-orange-600"
                               >

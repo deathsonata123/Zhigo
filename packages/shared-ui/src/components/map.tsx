@@ -7,7 +7,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import Link from 'next/link';
 import { Button } from '../components/ui/button';
 import { UtensilsCrossed, Navigation, User, ShoppingCart, LayoutDashboard, Bike, ShieldCheck, Sun, Moon, Sunset, Sunrise, Code2 } from 'lucide-react';
-import { getCurrentUser, signOut, fetchAuthSession } from 'aws-amplify/auth';
+import { getCurrentUser, signOut, fetchAuthSession } from '../lib/auth';
 import { LoginDialog } from '../components/login-dialog';
 import { SignupDialog } from '../components/signup-dialog';
 import {

@@ -2,8 +2,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Hub } from 'aws-amplify/utils';
-import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth';
+
+import { fetchAuthSession, getCurrentUser } from '../lib/auth';
 
 /**
  * OAuth Handler Component
@@ -20,34 +20,34 @@ export function OAuthHandler() {
       const urlParams = new URLSearchParams(window.location.search);
       const hasOAuthCode = urlParams.has('code');
       const hasOAuthState = urlParams.has('state');
-      
+
       // Only process if we have OAuth params AND haven't processed yet
       if ((!hasOAuthCode && !hasOAuthState) || sessionStorage.getItem('oauth_processed')) {
         return;
       }
-      
+
       hasProcessed.current = true;
       console.log('[OAuthHandler] 🔍 OAuth redirect detected, processing...');
-      
+
       // Wait for Amplify to process OAuth tokens
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       try {
         const session = await fetchAuthSession({ forceRefresh: true });
-        
+
         if (session.tokens) {
           console.log('[OAuthHandler] ✅ OAuth successful');
-          
+
           // Verify user
           await getCurrentUser();
-          
+
           // Clean URL
           const cleanUrl = window.location.pathname;
           window.history.replaceState({}, document.title, cleanUrl);
-          
+
           // Mark as processed
           sessionStorage.setItem('oauth_processed', 'true');
-          
+
           // Single reload to update UI
           console.log('[OAuthHandler] 🔄 Reloading once...');
           window.location.reload();

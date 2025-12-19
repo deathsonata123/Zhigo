@@ -44,6 +44,8 @@ import riderRoutes from './routes/rider.routes';
 import userRoutes from './routes/user.routes';
 import storageRoutes from './routes/storage.routes';
 import adminRoutes from './routes/admin.routes';
+import chatRoutes from './routes/chat.routes';
+
 
 // Initialize logger
 const logger = createLogger({
@@ -147,6 +149,7 @@ app.use('/api/riders', riderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/storage', storageRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

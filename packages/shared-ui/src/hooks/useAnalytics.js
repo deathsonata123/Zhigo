@@ -1,8 +1,6 @@
 // packages/shared-ui/src/hooks/useAnalytics.ts
 "use client";
 import { useState, useEffect } from 'react';
-import { generateClient } from 'aws-amplify/data';
-const client = generateClient();
 export const useAnalytics = (restaurantId, period) => {
     const [loading, setLoading] = useState(true);
     const [analytics, setAnalytics] = useState({
@@ -27,24 +25,11 @@ export const useAnalytics = (restaurantId, period) => {
             setLoading(true);
             try {
                 const dateRange = getDateRange(period);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
                 const [ordersResult, menuItemsResult, reviewsResult] = await Promise.all([
-                    client.models.Order.list({
-                        filter: {
-                            restaurantId: { eq: restaurantId },
-                            createdAt: { ge: dateRange.start.toISOString() },
-                        },
-                        limit: 1000,
-                    }),
-                    client.models.MenuItem.list({
-                        filter: { restaurantId: { eq: restaurantId } },
-                    }),
-                    client.models.Review.list({
-                        filter: {
-                            restaurantId: { eq: restaurantId },
-                            createdAt: { ge: dateRange.start.toISOString() },
-                        },
-                        limit: 100,
-                    }),
+                    fetch(`${apiUrl}/api/orders?restaurantId=${restaurantId}&createdAtGte=${dateRange.start.toISOString()}`).then(r => r.json()).then(orders => ({ data: orders })),
+                    fetch(`${apiUrl}/api/menu-items?restaurantId=${restaurantId}`).then(r => r.json()).then(items => ({ data: items })),
+                    fetch(`${apiUrl}/api/reviews?restaurantId=${restaurantId}&createdAtGte=${dateRange.start.toISOString()}`).then(r => r.json()).then(reviews => ({ data: reviews })),
                 ]);
                 const processedData = processAnalyticsData(ordersResult.data || [], menuItemsResult.data || [], reviewsResult.data || [], period);
                 setAnalytics(processedData);
@@ -222,12 +207,13 @@ export const useRestaurantId = () => {
     useEffect(() => {
         const fetchRestaurantId = async () => {
             try {
-                const { data: restaurants } = await client.models.Restaurant.list({
-                    filter: { status: { eq: 'approved' } },
-                    limit: 1,
-                });
-                if (restaurants && restaurants.length > 0) {
-                    setRestaurantId(restaurants[0].id);
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?status=approved&limit=1`);
+                if (restaurantsRes.ok) {
+                    const restaurants = await restaurantsRes.json();
+                    if (restaurants && restaurants.length > 0) {
+                        setRestaurantId(restaurants[0].id);
+                    }
                 }
             }
             catch (error) {

@@ -6,7 +6,7 @@ import { Footer } from './footer';
 import { Button } from './ui/button';
 import { MessageSquare } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Hub } from 'aws-amplify/utils';
+
 
 // Note: Amplify.configure() is handled by the parent App's providers.tsx
 // This component assumes the environment is already configured.

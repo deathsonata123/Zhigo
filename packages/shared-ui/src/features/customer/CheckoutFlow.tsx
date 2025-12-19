@@ -15,23 +15,23 @@ import { Label } from '../../components/ui/label';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { Textarea } from '../../components/ui/textarea';
 import { useToast } from '../../hooks/use-toast';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser } from '../../lib/auth';
 
 
 type CartItem = MenuItem & { quantity: number };
 
 const PAYMENT_METHODS = [
-  { id: 'cod', name: 'Cash on Delivery', icon: Wallet, enabled: true },
-  { id: 'bkash', name: 'bKash', icon: Smartphone, enabled: true },
-  { id: 'nagad', name: 'Nagad', icon: Smartphone, enabled: true },
-  { id: 'card', name: 'Credit/Debit Card', icon: CreditCard, enabled: true },
+    { id: 'cod', name: 'Cash on Delivery', icon: Wallet, enabled: true },
+    { id: 'bkash', name: 'bKash', icon: Smartphone, enabled: true },
+    { id: 'nagad', name: 'Nagad', icon: Smartphone, enabled: true },
+    { id: 'card', name: 'Credit/Debit Card', icon: CreditCard, enabled: true },
 ];
 
 function CheckoutPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
-    
+
     const cartString = searchParams.get('cart');
     const restaurantName = searchParams.get('restaurantName');
     const restaurantImage = searchParams.get('restaurantImage');
@@ -70,18 +70,24 @@ function CheckoutPageContent() {
     const fetchCustomerData = async () => {
         try {
             const user = await getCurrentUser();
-            
-            // Try to get customer profile
-            const { data: customers } = await client.models.UserProfile.list({
-                filter: { userId: { eq: user.userId } }
-            });
 
-            if (customers && customers.length > 0) {
-                const customer = customers[0];
-                setCustomerName(customer.fullName || '');
-                setCustomerPhone(customer.phone || '');
-                setCustomerAddress(customer.addresses || '');
-                setCustomerEmail(customer.email || user.signInDetails?.loginId || '');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+            // Try to get customer profile
+            const customersRes = await fetch(`${apiUrl}/api/users?userId=${user.userId}`);
+            if (customersRes.ok) {
+                const customers = await customersRes.json();
+
+                if (customers && customers.length > 0) {
+                    const customer = customers[0];
+                    setCustomerName(customer.fullName || '');
+                    setCustomerPhone(customer.phone || '');
+                    setCustomerAddress(customer.addresses || '');
+                    setCustomerEmail(customer.email || user.signInDetails?.loginId || '');
+                } else {
+                    // Use user email as fallback
+                    setCustomerEmail(user.signInDetails?.loginId || '');
+                }
             } else {
                 // Use user email as fallback
                 setCustomerEmail(user.signInDetails?.loginId || '');
@@ -104,7 +110,7 @@ function CheckoutPageContent() {
     const removeItem = (itemId: string) => {
         const updatedCart = cart.filter(item => item.id !== itemId);
         setCart(updatedCart);
-        
+
         if (updatedCart.length === 0) {
             localStorage.removeItem('cart');
             window.dispatchEvent(new Event('cartUpdated'));
@@ -157,17 +163,16 @@ function CheckoutPageContent() {
         }
 
         setIsPlacingOrder(true);
-        
+
         try {
             console.log('📦 Placing order for restaurant:', restaurantId);
 
             // Get restaurant data to fetch its coordinates
-            const { data: restaurant, errors: restaurantErrors } = await client.models.Restaurant.get({ 
-                id: restaurantId 
-            });
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const restaurantRes = await fetch(`${apiUrl}/api/restaurants/${restaurantId}`);
 
-            if (restaurantErrors || !restaurant) {
-                console.error('❌ Restaurant fetch error:', restaurantErrors);
+            if (!restaurantRes.ok) {
+                console.error('❌ Restaurant fetch error:', restaurantRes.statusText);
                 toast({
                     title: "Error",
                     description: "Restaurant not found",
@@ -175,6 +180,8 @@ function CheckoutPageContent() {
                 });
                 return;
             }
+
+            const restaurant = await restaurantRes.json();
 
             console.log('🏪 Restaurant data:', restaurant);
 
@@ -184,10 +191,10 @@ function CheckoutPageContent() {
 
             try {
                 const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-                
+
                 if (mapboxToken) {
                     const geocodeUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(customerAddress + ', Dhaka, Bangladesh')}.json?access_token=${mapboxToken}&limit=1`;
-                    
+
                     console.log('🗺️ Geocoding customer address...');
                     const geocodeResponse = await fetch(geocodeUrl);
                     const geocodeData = await geocodeResponse.json();
@@ -217,35 +224,39 @@ function CheckoutPageContent() {
             console.log('📝 Creating order with items:', orderItems.length);
 
             // Create order with location data
-            const { data: newOrder, errors: orderErrors } = await client.models.Order.create({
-                restaurantId,
-                restaurantName,
-                customerName: customerName.trim(),
-                customerPhone: customerPhone.trim(),
-                customerAddress: customerAddress.trim(),
-                customerEmail: customerEmail.trim() || 'customer@example.com',
-                deliveryZone,
-                noteToRider: noteToRider.trim() || undefined,
-                noteToRestaurant: noteToRestaurant.trim() || undefined,
-                items: JSON.stringify(orderItems),
-                subtotal,
-                deliveryFee,
-                serviceFee,
-                vat,
-                tip: selectedTip,
-                total,
-                paymentMethod: paymentMethod,
-                paymentStatus: 'pending',
-                status: 'pending',
-                // ADD LOCATION DATA
-                restaurantLatitude: restaurant.latitude || 23.8103,
-                restaurantLongitude: restaurant.longitude || 90.4125,
-                customerLatitude: customerLat,
-                customerLongitude: customerLng,
-                createdAt: new Date().toISOString(),
+            const orderRes = await fetch(`${apiUrl}/api/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    restaurantId,
+                    restaurantName,
+                    customerName: customerName.trim(),
+                    customerPhone: customerPhone.trim(),
+                    customerAddress: customerAddress.trim(),
+                    customerEmail: customerEmail.trim() || 'customer@example.com',
+                    deliveryZone,
+                    noteToRider: noteToRider.trim() || undefined,
+                    noteToRestaurant: noteToRestaurant.trim() || undefined,
+                    items: JSON.stringify(orderItems),
+                    subtotal,
+                    deliveryFee,
+                    serviceFee,
+                    vat,
+                    tip: selectedTip,
+                    total,
+                    paymentMethod: paymentMethod,
+                    paymentStatus: 'pending',
+                    status: 'pending',
+                    restaurantLatitude: restaurant.latitude || 23.8103,
+                    restaurantLongitude: restaurant.longitude || 90.4125,
+                    customerLatitude: customerLat,
+                    customerLongitude: customerLng,
+                    createdAt: new Date().toISOString(),
+                })
             });
 
-            if (orderErrors) {
+            if (!orderRes.ok) {
+                const orderErrors = await orderRes.json();
                 console.error('❌ Order creation errors:', orderErrors);
                 toast({
                     title: "Error",
@@ -254,6 +265,8 @@ function CheckoutPageContent() {
                 });
                 return;
             }
+
+            const newOrder = await orderRes.json();
 
             console.log('✅ Order created successfully:', newOrder?.id);
 
@@ -268,7 +281,7 @@ function CheckoutPageContent() {
 
             // Redirect to home page
             router.push(`/?orderId=${newOrder?.id}`);
-            
+
         } catch (error) {
             console.error('❌ Error placing order:', error);
             toast({
@@ -317,12 +330,12 @@ function CheckoutPageContent() {
                         <Link href={`/restaurants/${restaurantId}`}>
                             <div className="flex items-center gap-4 group">
                                 {restaurantImage && (
-                                    <Image 
-                                        src={restaurantImage} 
-                                        alt={restaurantName} 
-                                        width={48} 
-                                        height={48} 
-                                        className="rounded-full" 
+                                    <Image
+                                        src={restaurantImage}
+                                        alt={restaurantName}
+                                        width={48}
+                                        height={48}
+                                        className="rounded-full"
                                     />
                                 )}
                                 <div>
@@ -338,7 +351,7 @@ function CheckoutPageContent() {
                     <main className="lg:col-span-3">
                         <div className="space-y-6">
                             <h2 className="text-3xl font-bold font-headline mb-2">Review and place your order</h2>
-                            
+
                             {/* Delivery Address - EDITABLE */}
                             <Card>
                                 <CardHeader>
@@ -391,7 +404,7 @@ function CheckoutPageContent() {
 
                                     <div className="space-y-2">
                                         <Label htmlFor="noteRest">Note to Restaurant (Optional)</Label>
-                                        <Textarea 
+                                        <Textarea
                                             id="noteRest"
                                             placeholder="e.g. Extra spicy, no onions"
                                             value={noteToRestaurant}
@@ -402,7 +415,7 @@ function CheckoutPageContent() {
 
                                     <div className="space-y-2">
                                         <Label htmlFor="noteRider">Note to Rider (Optional)</Label>
-                                        <Textarea 
+                                        <Textarea
                                             id="noteRider"
                                             placeholder="e.g. Ring the bell, building landmark"
                                             value={noteToRider}
@@ -477,7 +490,7 @@ function CheckoutPageContent() {
                                 <CardContent>
                                     <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
                                         {PAYMENT_METHODS.map((method) => (
-                                            <div 
+                                            <div
                                                 key={method.id}
                                                 className="flex items-center justify-between p-4 border rounded-md has-[:checked]:bg-primary/5 has-[:checked]:border-primary cursor-pointer"
                                             >
@@ -503,8 +516,8 @@ function CheckoutPageContent() {
                                 <CardContent>
                                     <div className="flex flex-wrap gap-2">
                                         {tipAmounts.map(amount => (
-                                            <Button 
-                                                key={amount} 
+                                            <Button
+                                                key={amount}
                                                 variant={selectedTip === amount ? 'default' : 'outline'}
                                                 onClick={() => setSelectedTip(amount)}
                                                 className="flex-1"
@@ -517,8 +530,8 @@ function CheckoutPageContent() {
                             </Card>
 
                             {/* Place Order Button */}
-                            <Button 
-                                size="lg" 
+                            <Button
+                                size="lg"
                                 className="w-full text-lg"
                                 onClick={handlePlaceOrder}
                                 disabled={isPlacingOrder || cart.length === 0}
@@ -544,7 +557,7 @@ function CheckoutPageContent() {
                                 <CardTitle className="font-headline text-xl">Your order</CardTitle>
                                 <CardDescription>{restaurantName}</CardDescription>
                             </CardHeader>
-                            
+
                             <Separator />
 
                             <div className="space-y-4 max-h-60 overflow-y-auto pr-2 my-4">
@@ -561,7 +574,7 @@ function CheckoutPageContent() {
                                 ))}
                             </div>
 
-                            <Separator className="my-4"/>
+                            <Separator className="my-4" />
 
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
@@ -588,7 +601,7 @@ function CheckoutPageContent() {
                                 )}
                             </div>
 
-                            <Separator className="my-4"/>
+                            <Separator className="my-4" />
 
                             <div className="flex justify-between font-bold text-lg">
                                 <p>Total</p>

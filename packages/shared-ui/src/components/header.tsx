@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '../lib/utils';
 import { HeaderActions } from './header-actions';
-import { getCurrentUser, signOut } from 'aws-amplify/auth';
+import { getCurrentUser, signOut } from '../lib/auth';
 
 function PromoBanner() {
   const [isVisible, setIsVisible] = useState(true);
@@ -26,16 +26,13 @@ function PromoBanner() {
     try {
       const user = await getCurrentUser();
 
-      const { data: restaurants } = await client.models.Restaurant.list({
-        filter: {
-          ownerId: {
-            eq: user.userId
-          }
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${user.userId}`);
+      if (restaurantsRes.ok) {
+        const restaurants = await restaurantsRes.json();
+        if (restaurants && restaurants.length > 0) {
+          setHasRestaurant(true);
         }
-      });
-
-      if (restaurants && restaurants.length > 0) {
-        setHasRestaurant(true);
       }
     } catch (error) {
       console.log('User not authenticated or error checking restaurant:', error);
