@@ -6,14 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Button } from '../../components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../../components/ui/chart';
-import { 
-  Utensils, Clock, MessageSquare, AlertTriangle, Star, DollarSign, 
-  ShoppingCart, Package, TrendingUp, Download, FileText, Printer 
+import {
+  Utensils, Clock, MessageSquare, AlertTriangle, Star, DollarSign,
+  ShoppingCart, Package, TrendingUp, Download, FileText, Printer
 } from 'lucide-react';
 import { useAnalytics } from '../../hooks/useAnalytics';
-// Only importing what we confirmed exists in shared-utils
-import { exportAnalyticsToCSV } from '@food-delivery/shared-utils'; 
-import type { AnalyticsPeriod } from '@food-delivery/shared-types';
 
 const PIE_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))"];
 
@@ -21,14 +18,20 @@ const PIE_COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--cha
 const useRestaurantId = () => ({ restaurantId: "mock-id", loading: false });
 
 export function AnalyticsDashboard() {
-  const [period, setPeriod] = useState<AnalyticsPeriod>('this-month');
+  const [period, setPeriod] = useState<'today' | 'this-week' | 'this-month'>('this-month');
   const { restaurantId, loading: restaurantLoading } = useRestaurantId();
   const { analytics, loading: analyticsLoading } = useAnalytics(restaurantId, period);
 
   const loading = restaurantLoading || analyticsLoading;
 
   const handleExportCSV = () => {
-    exportAnalyticsToCSV(analytics, 'Restaurant');
+    const csvData = JSON.stringify(analytics, null, 2);
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'analytics.csv';
+    a.click();
   };
 
   // Placeholder handlers
@@ -147,7 +150,7 @@ export function AnalyticsDashboard() {
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content Column */}
         <div className="lg:col-span-2 space-y-6">
@@ -157,7 +160,7 @@ export function AnalyticsDashboard() {
                 <CardTitle>Order Trends</CardTitle>
                 <CardDescription>Orders and revenue over time</CardDescription>
               </div>
-              <Select value={period} onValueChange={(val: AnalyticsPeriod) => setPeriod(val)}>
+              <Select value={period} onValueChange={(val) => setPeriod(val as any)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select period" />
                 </SelectTrigger>
@@ -271,13 +274,12 @@ export function AnalyticsDashboard() {
                   <div key={i} className="border-b last:border-0 pb-3 last:pb-0">
                     <div className="flex items-center gap-1 mb-1">
                       {Array.from({ length: 5 }).map((_, j) => (
-                        <Star 
-                          key={j} 
-                          className={`h-3.5 w-3.5 ${
-                            j < fb.rating 
-                              ? 'text-amber-400 fill-amber-400' 
-                              : 'text-gray-300'
-                          }`}
+                        <Star
+                          key={j}
+                          className={`h-3.5 w-3.5 ${j < fb.rating
+                            ? 'text-amber-400 fill-amber-400'
+                            : 'text-gray-300'
+                            }`}
                         />
                       ))}
                     </div>
