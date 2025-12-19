@@ -2,96 +2,98 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'aws-amplify/auth';
-import { Button } from 'shared-ui/components/ui/button';
-import { Input } from 'shared-ui/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from 'shared-ui/components/ui/card';
-import { useToast } from 'shared-ui/hooks/use-toast';
-import { ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
 
     try {
-      const { isSignedIn } = await signIn({ username: email, password });
-      
-      if (isSignedIn) {
-        toast({
-          title: "Login successful",
-          description: "Welcome to Zhigo Admin Dashboard",
-        });
-        
-        router.push('/dashboard');
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error.message || "Invalid credentials",
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.user?.role === 'admin' || data.user?.isAdmin) {
+          router.push('/dashboard');
+        } else {
+          setError('Unauthorized: Admin access required');
+        }
+      } else {
+        const data = await response.json();
+        setError(data.message || 'Invalid email or password');
+      }
+    } catch (err) {
+      setError('Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-primary/10 p-3 rounded-full">
-              <ShieldCheck className="h-8 w-8 text-primary" />
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">Admin Login</h1>
+          <p className="text-gray-600 mt-2">Sign in to your admin account</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          {error && (
+            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+              {error}
             </div>
+          )}
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"
+            />
           </div>
-          <CardTitle className="text-2xl text-center font-bold">Admin Dashboard</CardTitle>
-          <CardDescription className="text-center">
-            Sign in to manage the Zhigo platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@zhigo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 disabled:opacity-50"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
