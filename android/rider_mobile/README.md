@@ -1,16 +1,13 @@
-# rider_mobile
+# Rider Mobile App
 
-A new Flutter project.
+This directory is reserved for the future delivery rider mobile application built with Flutter.
 
-## Getting Started
+The app will allow delivery riders to:
+- Accept delivery orders
+- Navigate to pickup/delivery locations
+- Update delivery status
+- Track earnings
 
-This project is a starting point for a Flutter application.
+**Status**: Placeholder - Not yet implemented
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+**Backend**: Will connect to the same EC2 Express.js API at `https://api.yourdomain.com`

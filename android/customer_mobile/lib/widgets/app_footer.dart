@@ -1,141 +1,194 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_text_styles.dart';
+import '../theme/app_spacing.dart';
 
+/// App Footer - Main footer with company info and links
 class AppFooter extends StatelessWidget {
   const AppFooter({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        border: Border(top: BorderSide(color: Colors.grey[300]!)),
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(
+          top: BorderSide(
+            color: AppColors.border,
+            width: 1,
+          ),
+        ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Partner Banner
-          Container(
-            padding: const EdgeInsets.all(16),
-            margin: const EdgeInsets.only(bottom: 24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.orange.shade400, Colors.deepOrange.shade600],
-              ),
-              borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.only(
+        left: AppSpacing.screenMarginHorizontal,
+        right: AppSpacing.screenMarginHorizontal,
+        top: AppSpacing.sectionSpacing,
+        // No bottom padding
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 768) {
+            return _buildDesktopFooter(context);
+          } else {
+            return _buildMobileFooter(context);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildDesktopFooter(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Logo & Tagline
+            Expanded(
+              child: _buildLogoSection(),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.restaurant, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text(
-                            'Restaurant Owner?',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Join thousands of partners growing with Zhigo',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/partner-onboarding');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.orange,
-                  ),
-                  child: const Text('Become a Partner'),
-                ),
-              ],
+            
+            // Company
+            Expanded(
+              child: _buildLinkSection('Company', [
+                {'label': 'About Us', 'route': '/about'},
+                {'label': 'Careers', 'route': '/careers'},
+                {'label': 'Press', 'route': '/press'},
+              ]),
+            ),
+            
+            // Partnerships
+            Expanded(
+              child: _buildLinkSection('Partnerships', [
+                {'label': 'Become a Zhigo Partner', 'route': '/partner'},
+                {'label': 'Become a Rider', 'route': '/rider-signup'},
+                {'label': 'Become a Developer', 'route': '/developer'},
+              ]),
+            ),
+            
+            // Help
+            Expanded(
+              child: _buildLinkSection('Help', [
+                {'label': 'Contact Us', 'route': '/contact'},
+                {'label': 'FAQs', 'route': '/faqs'},
+              ]),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sectionSpacing),
+        const Divider(color: AppColors.border),
+        const SizedBox(height: AppSpacing.sm),
+        _buildCopyright(),
+      ],
+    );
+  }
+
+  Widget _buildMobileFooter(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildLogoSection(),
+        const SizedBox(height: AppSpacing.md),
+        _buildLinkSection('Company', [
+          {'label': 'About Us', 'route': '/about'},
+          {'label': 'Careers', 'route': '/careers'},
+          {'label': 'Press', 'route': '/press'},
+        ]),
+        const SizedBox(height: AppSpacing.md),
+        _buildLinkSection('Partnerships', [
+          {'label': 'Become a Zhigo Partner', 'route': '/partner'},
+          {'label': 'Become a Rider', 'route': '/rider-signup'},
+          {'label': 'Become a Developer', 'route': '/developer'},
+        ]),
+        const SizedBox(height: AppSpacing.md),
+        _buildLinkSection('Help', [
+          {'label': 'Contact Us', 'route': '/contact'},
+          {'label': 'FAQs', 'route': '/faqs'},
+        ]),
+        const SizedBox(height: AppSpacing.md),
+        const Divider(color: AppColors.border),
+        const SizedBox(height: AppSpacing.sm),
+        _buildCopyright(),
+      ],
+    );
+  }
+
+  Widget _buildLogoSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.restaurant,
+              color: AppColors.accent,
+              size: 24,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              'Zhigo',
+              style: AppTextStyles.h2.copyWith(
+                color: AppColors.accent,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Your favorite food, delivered.',
+          style: AppTextStyles.small.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLinkSection(String title, List<Map<String, String>> links) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: AppTextStyles.bodyEmphasized.copyWith(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        ...links.map((link) => Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+          child: TextButton(
+            onPressed: () {
+              // Navigate to route
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerLeft,
+            ),
+            child: Text(
+              link['label']!,
+              style: AppTextStyles.small.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
-          // Links
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 24,
-            runSpacing: 12,
-            children: [
-              TextButton(
-                onPressed: () {
-                  // TODO: Navigate to About page
-                },
-                child: const Text('About Us'),
-              ),
-              TextButton(
-                onPressed: () {
-                  // TODO: Navigate to Terms page
-                },
-                child: const Text('Terms of Service'),
-              ),
-              TextButton(
-                onPressed: () {
-                  // TODO: Navigate to Privacy page
-                },
-                child: const Text('Privacy Policy'),
-              ),
-              TextButton(
-                onPressed: () {
-                  // TODO: Navigate to Contact page
-                },
-                child: const Text('Contact Us'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Social Media Icons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.facebook),
-                onPressed: () {
-                  // TODO: Open Facebook
-                },
-                tooltip: 'Facebook',
-              ),
-              IconButton(
-                icon: const Icon(Icons.email),
-                onPressed: () {
-                  // TODO: Open Twitter
-                },
-                tooltip: 'Twitter',
-              ),
-              IconButton(
-                icon: const Icon(Icons.phone),
-                onPressed: () {
-                  // TODO: Open Instagram
-                },
-                tooltip: 'Instagram',
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Copyright
-          Text(
-            '© ${DateTime.now().year} Zhigo. All rights reserved.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        )),
+      ],
+    );
+  }
+
+  Widget _buildCopyright() {
+    return Center(
+      child: Text(
+        '© ${DateTime.now().year} Zhigo. All rights reserved.',
+        style: AppTextStyles.small.copyWith(
+          color: AppColors.textSecondary,
+        ),
+        textAlign: TextAlign.center,
       ),
     );
   }

@@ -1,64 +1,69 @@
-import '../config/api_config.dart';
-import '../models/user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/constants.dart';
 import 'api_service.dart';
 
 class AuthService {
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
   final ApiService _apiService = ApiService();
 
-  Future<Map<String, dynamic>> signIn(String email, String password) async {
+  // Login
+  Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await _apiService.post(
-      '${ApiConfig.authEndpoint}/login',
-      {'email': email, 'password': password},
-      includeAuth: false,
-    );
-
-    if (response['accessToken'] != null) {
-      await _apiService.saveToken(response['accessToken']);
-    }
-
-    return {
-      'user': response['user'] != null ? User.fromJson(response['user']) : null,
-      'token': response['accessToken'],
-    };
-  }
-
-  Future<Map<String, dynamic>> signUp(String email, String password, String name) async {
-    final response = await _apiService.post(
-      '${ApiConfig.authEndpoint}/signup',
+      '${ApiConstants.auth}/login',
       {
         'email': email,
         'password': password,
-        'name': name,
-        'role': 'customer',
       },
-      includeAuth: false,
     );
 
-    if (response['accessToken'] != null) {
-      await _apiService.saveToken(response['accessToken']);
+    if (response['success'] == true && response['token'] != null) {
+      await _apiService.setAuthToken(response['token']);
+      
+      // Save user data
+      if (response['user'] != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(AppConstants.prefKeyUserId, response['user']['id']);
+        
+        // Save restaurant ID if user is a restaurant owner
+        if (response['user']['restaurant_id'] != null) {
+          await prefs.setString(
+            AppConstants.prefKeyRestaurantId,
+            response['user']['restaurant_id'],
+          );
+        }
+      }
     }
 
-    return {
-      'user': response['user'] != null ? User.fromJson(response['user']) : null,
-      'token': response['accessToken'],
-    };
+    return response;
   }
 
-  Future<User?> getCurrentUser() async {
-    try {
-      final response = await _apiService.get('${ApiConfig.authEndpoint}/me');
-      return response != null ? User.fromJson(response) : null;
-    } catch (e) {
-      return null;
-    }
+  // Logout
+  Future<void> logout() async {
+    await _apiService.clearAuthToken();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(AppConstants.prefKeyUserId);
+    await prefs.remove(AppConstants.prefKeyRestaurantId);
   }
 
-  Future<void> signOut() async {
-    await _apiService.removeToken();
+  // Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(AppConstants.prefKeyAuthToken);
+    return token != null && token.isNotEmpty;
   }
 
-  Future<bool> isAuthenticated() async {
-    final token = await _apiService.getToken();
-    return token != null;
+  // Get current user ID
+  Future<String?> getCurrentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(AppConstants.prefKeyUserId);
+  }
+
+  // Get current restaurant ID
+  Future<String?> getRestaurantId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(AppConstants.prefKeyRestaurantId);
   }
 }

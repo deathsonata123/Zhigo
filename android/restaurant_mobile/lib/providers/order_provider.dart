@@ -1,81 +1,122 @@
 import 'package:flutter/material.dart';
 import '../models/order.dart';
-import '../services/order_management_service.dart';
+import '../services/restaurant_service.dart';
+import '../utils/constants.dart';
 
 class OrderProvider with ChangeNotifier {
-  final OrderManagementService _service = OrderManagementService();
-  
   List<Order> _orders = [];
   bool _isLoading = false;
   String? _error;
-  String? _restaurantId;
-  Map<String, dynamic> _stats = {};
 
   List<Order> get orders => _orders;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  Map<String, dynamic> get stats => _stats;
 
+  // Filter orders by status
   List<Order> get pendingOrders => 
-      _orders.where((o) => o.status == 'pending').toList();
+      _orders.where((o) => o.status == OrderStatus.pending).toList();
   
-  List<Order> get preparingOrders => 
-      _orders.where((o) => o.status == 'preparing').toList();
+  List<Order> get activeOrders => 
+      _orders.where((o) => [
+        OrderStatus.accepted,
+        OrderStatus.preparing,
+        OrderStatus.ready,
+      ].contains(o.status)).toList();
   
-  List<Order> get deliveredOrders => 
-      _orders.where((o) => o.status == 'delivered').toList();
+  List<Order> get completedOrders => 
+      _orders.where((o) => o.status == OrderStatus.delivered).toList();
+  
+  List<Order> get cancelledOrders => 
+      _orders.where((o) => [
+        OrderStatus.rejected,
+        OrderStatus.cancelled,
+      ].contains(o.status)).toList();
 
-  void setRestaurantId(String id) {
-    _restaurantId = id;
-    fetchOrders();
-    fetchStats();
-  }
+  final RestaurantService _restaurantService = RestaurantService();
 
-  Future<void> fetchOrders() async {
-    if (_restaurantId == null) return;
-    
+  // Load orders for restaurant
+  Future<void> loadOrders(String restaurantId, {String? status}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _orders = await _service.getRestaurantOrders(_restaurantId!);
-      _orders.sort((a, b) => (b.createdAt ?? DateTime.now())
-          .compareTo(a.createdAt ?? DateTime.now()));
-      _error = null;
+      _orders = await _restaurantService.getOrders(restaurantId, status: status);
     } catch (e) {
       _error = e.toString();
-    }
-
-    _isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> fetchStats({String? period}) async {
-    if (_restaurantId == null) return;
-    
-    try {
-      _stats = await _service.getOrderStats(_restaurantId!, period: period);
-      notifyListeners();
-    } catch (e) {
-      _error = e.toString();
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<bool> updateStatus(String orderId, String status) async {
+  // Accept order
+  Future<bool> acceptOrder(String orderId, int prepTime) async {
     try {
-      final updated = await _service.updateOrderStatus(orderId, status);
-      final index = _orders.indexWhere((o) => o.id == orderId);
-      if (index >= 0) {
-        _orders[index] = updated;
-        notifyListeners();
-      }
+      final updatedOrder = await _restaurantService.acceptOrder(orderId, prepTime);
+      _updateOrderInList(updatedOrder);
+      notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
       notifyListeners();
       return false;
     }
+  }
+
+  // Reject order
+  Future<bool> rejectOrder(String orderId, String reason) async {
+    try {
+      final updatedOrder = await _restaurantService.rejectOrder(orderId, reason);
+      _updateOrderInList(updatedOrder);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Mark as preparing
+  Future<bool> markPreparing(String orderId) async {
+    try {
+      final updatedOrder = await _restaurantService.markOrderPreparing(orderId);
+      _updateOrderInList(updatedOrder);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Mark as ready
+  Future<bool> markReady(String orderId) async {
+    try {
+      final updatedOrder = await _restaurantService.markOrderReady(orderId);
+      _updateOrderInList(updatedOrder);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Helper to update order in list
+  void _updateOrderInList(Order updatedOrder) {
+    final index = _orders.indexWhere((o) => o.id == updatedOrder.id);
+    if (index != -1) {
+      _orders[index] = updatedOrder;
+    }
+  }
+
+  // Clear error
+  void clearError() {
+    _error = null;
+    notifyListeners();
   }
 }

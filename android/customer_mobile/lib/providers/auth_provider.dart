@@ -1,31 +1,33 @@
-import 'package:flutter/material.dart';
-import '../models/user.dart';
+import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   
-  User? _user;
+  bool _isAuthenticated = false;
   bool _isLoading = false;
   String? _error;
+  Map<String, dynamic>? _user;
 
-  User? get user => _user;
+  bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get isAuthenticated => _user != null;
+  Map<String, dynamic>? get user => _user;
 
-  Future<void> checkAuthStatus() async {
+  AuthProvider() {
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
     _isLoading = true;
     notifyListeners();
-
-    try {
-      _user = await _authService.getCurrentUser();
-      _error = null;
-    } catch (e) {
-      _user = null;
-      _error = null; // Silent fail on check
+    
+    _isAuthenticated = await _authService.isAuthenticated();
+    
+    if (_isAuthenticated) {
+      _user = await _authService.getUserProfile();
     }
-
+    
     _isLoading = false;
     notifyListeners();
   }
@@ -36,12 +38,23 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _authService.signIn(email, password);
-      _user = result['user'];
-      _error = null;
-      _isLoading = false;
-      notifyListeners();
-      return true;
+      final result = await _authService.signIn(
+        email: email,
+        password: password,
+      );
+
+      if (result['success'] == true) {
+        _isAuthenticated = true;
+        _user = result['data'];
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
@@ -50,18 +63,36 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> signUp(String email, String password, String name) async {
+  Future<bool> signUp({
+    required String email,
+    required String password,
+    required String name,
+    required String phone,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final result = await _authService.signUp(email, password, name);
-      _user = result['user'];
-      _error = null;
-      _isLoading = false;
-      notifyListeners();
-      return true;
+      final result = await _authService.signUp(
+        email: email,
+        password: password,
+        name: name,
+        phone: phone,
+      );
+
+      if (result['success'] == true) {
+        _isAuthenticated = true;
+        _user = result['data'];
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = result['message'];
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
@@ -72,6 +103,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> signOut() async {
     await _authService.signOut();
+    _isAuthenticated = false;
     _user = null;
     notifyListeners();
   }

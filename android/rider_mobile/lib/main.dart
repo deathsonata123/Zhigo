@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'providers/auth_provider.dart';
-import 'providers/delivery_provider.dart';
-import 'screens/deliveries_screen.dart';
-import 'screens/earnings_screen.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/profile_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'services/api_service.dart';
+import 'services/auth_service.dart';
+import 'providers/rider_provider.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/main_navigation.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await ApiService().initialize();
+  
   runApp(const MyApp());
 }
 
@@ -18,76 +22,51 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => DeliveryProvider()),
+        ChangeNotifierProvider(create: (_) => RiderProvider()),
       ],
-      child: MaterialApp(
-        title: 'Zhigo Rider',
+      child: MaterialApp.router(
+        title: 'Rider App',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.cyan,
+            seedColor: Colors.blue,
             brightness: Brightness.light,
           ),
           useMaterial3: true,
+          appBarTheme: const AppBarTheme(
+            centerTitle: false,
+            elevation: 0,
+          ),
         ),
-        home: const MainNavigation(),
+        routerConfig: _router,
       ),
     );
   }
 }
 
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+final GoRouter _router = GoRouter(
+  initialLocation: '/login',
+  routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const MainNavigation(),
+    ),
+  ],
+  redirect: (context, state) async {
+    final authService = AuthService();
+    final isLoggedIn = await authService.isLoggedIn();
+    final isLoginRoute = state.matchedLocation == '/login';
 
-  @override
-  State<MainNavigation> createState() => _MainNavigationState();
-}
-
-class _MainNavigationState extends State<MainNavigation> {
-  int _selectedIndex = 0;
-
-  static const List<Widget> _screens = [
-    DashboardScreen(),
-    DeliveriesScreen(),
-    EarningsScreen(),
-    ProfileScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.delivery_dining_outlined),
-            selectedIcon: Icon(Icons.delivery_dining),
-            label: 'Deliveries',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(Icons.account_balance_wallet),
-            label: 'Earnings',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
-    );
-  }
-}
+    if (!isLoggedIn && !isLoginRoute) {
+      return '/login';
+    }
+    if (isLoggedIn && isLoginRoute) {
+      return '/';
+    }
+    return null;
+  },
+);

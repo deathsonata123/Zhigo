@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../screens/partner/partner_onboarding_screen.dart';
 
+/// Partner Banner - "Become a Zhigo Partner"
+/// Dismissible banner at top of screen
 class PartnerBanner extends StatefulWidget {
-  const PartnerBanner({Key? key}) : super(key: key);
+  const PartnerBanner({super.key});
 
   @override
   State<PartnerBanner> createState() => _PartnerBannerState();
@@ -10,88 +14,58 @@ class PartnerBanner extends StatefulWidget {
 
 class _PartnerBannerState extends State<PartnerBanner> {
   bool _isVisible = true;
-  bool _hasRestaurant = false;
-  bool _isChecking = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkUserRestaurant();
-  }
-
-  Future<void> _checkUserRestaurant() async {
-    try {
-      final user = await AuthService.getCurrentUser();
-      if (user == null) {
-        setState(() {
-          _isChecking = false;
-        });
-        return;
-      }
-
-      // Check if user has a restaurant
-      final apiUrl = const String.fromEnvironment(
-        'API_URL',
-        defaultValue: 'http://localhost:3000',
-      );
-      
-      // You'll need to implement this API call based on your backend
-      // For now, we'll just set it to false
-      setState(() {
-        _hasRestaurant = false;
-        _isChecking = false;
-      });
-    } catch (error) {
-      print('User not authenticated or error checking restaurant: $error');
-      setState(() {
-        _isChecking = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    // Hide banner if:
-    // - User dismissed it
-    // - Still checking
-    // - User already has a restaurant
-    if (!_isVisible || _isChecking || _hasRestaurant) {
-      return const SizedBox.shrink();
-    }
+    if (!_isVisible) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Theme.of(context).primaryColor.withOpacity(0.1),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenMarginHorizontal,
+        vertical: 6, // Minimal padding
+      ),
+      color: Colors.transparent, // Transparent background
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          TextButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/partner');
-            },
-            child: Text(
-              'Become a Zhigo Partner',
-              style: TextStyle(
-                color: Theme.of(context).primaryColor,
-                fontWeight: FontWeight.w600,
-                decoration: TextDecoration.underline,
+          // Centered text
+          Center(
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const PartnerOnboardingScreen(),
+                  ),
+                );
+              },
+              child: Text(
+                'Become a Zhigo Partner',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  decoration: TextDecoration.underline,
+                ),
               ),
             ),
           ),
-          const Spacer(),
-          IconButton(
-            icon: Icon(
-              Icons.close,
-              color: Theme.of(context).primaryColor.withOpacity(0.7),
-              size: 20,
+          // Close button (positioned right)
+          Positioned(
+            right: 0,
+            child: IconButton(
+              onPressed: () {
+                setState(() {
+                  _isVisible = false;
+                });
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(
+                Icons.close,
+                size: 18,
+                color: AppColors.accent.withOpacity(0.7),
+              ),
             ),
-            onPressed: () {
-              setState(() {
-                _isVisible = false;
-              });
-            },
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
           ),
         ],
       ),

@@ -1,48 +1,61 @@
+import 'package:flutter/foundation.dart';
+import '../services/api_service.dart';
 import '../config/api_config.dart';
-import '../models/restaurant.dart';
-import '../models/menu_item.dart';
-import 'api_service.dart';
 
 class RestaurantService {
   final ApiService _apiService = ApiService();
 
-  Future<List<Restaurant>> getRestaurants() async {
-    final response = await _apiService.get(ApiConfig.restaurantsEndpoint, includeAuth: false);
-    
-    if (response is List) {
-      // Filter approved restaurants only
-      return response
-          .map((json) => Restaurant.fromJson(json))
-          .where((restaurant) => restaurant.status == 'approved')
-          .toList();
+  // Get all restaurants
+  Future<List<Map<String, dynamic>>> getRestaurants() async {
+    try {
+      final response = await _apiService.get(ApiConfig.restaurants);
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
+      
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching restaurants: $e');
+      return [];
     }
-    return [];
   }
 
-  Future<Restaurant?> getRestaurant(String id) async {
-    final response = await _apiService.get('${ApiConfig.restaurantsEndpoint}/$id', includeAuth: false);
-    return response != null ? Restaurant.fromJson(response) : null;
-  }
-
-  Future<List<MenuItem>> getMenuItems(String restaurantId) async {
-    final response = await _apiService.get(
-      '${ApiConfig.menuItemsEndpoint}?restaurant_id=$restaurantId',
-      includeAuth: false,
-    );
-    
-    if (response is List) {
-      return response
-          .map((json) => MenuItem.fromJson(json))
-          .where((item) => item.available)
-          .toList();
+  // Get restaurant details
+  Future<Map<String, dynamic>?> getRestaurantDetails(String id) async {
+    try {
+      final response = await _apiService.get(ApiConfig.restaurantDetails(id));
+      
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching restaurant details: $e');
+      return null;
     }
-    return [];
   }
 
-  Future<List<Restaurant>> searchRestaurants(String query) async {
-    final restaurants = await getRestaurants();
-    return restaurants
-        .where((r) => r.name.toLowerCase().contains(query.toLowerCase()))
-        .toList();
+  // Get restaurant menu
+  Future<List<Map<String, dynamic>>> getRestaurantMenu(String id) async {
+    try {
+      final response = await _apiService.get(ApiConfig.restaurantMenu(id));
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+      }
+      
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching restaurant menu: $e');
+      return [];
+    }
   }
 }
