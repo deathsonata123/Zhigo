@@ -46,14 +46,14 @@ export class DatabaseService {
   async query<T = any>(text: string, params?: any[]): Promise<T[]> {
     const start = Date.now();
     try {
-      const result: QueryResult<T> = await this.pool.query(text, params);
+      const result = await this.pool.query(text, params);
       const duration = Date.now() - start;
-      console.log('Executed query', { 
-        text: text.substring(0, 100), 
-        duration, 
-        rows: result.rowCount 
+      console.log('Executed query', {
+        text: text.substring(0, 100),
+        duration,
+        rows: result.rowCount
       });
-      return result.rows;
+      return result.rows as T[];
     } catch (error) {
       console.error('Database query error:', error);
       throw error;

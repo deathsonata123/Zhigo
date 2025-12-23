@@ -77,9 +77,9 @@ const PORT = process.env.PORT || 3000;
 // Security headers
 app.use(helmet());
 
-// CORS
+// CORS - Allow all origins for development
 app.use(cors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+    origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : true,
     credentials: true
 }));
 
