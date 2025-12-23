@@ -74,6 +74,9 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 // ========================================
 
+// Trust proxy - Required for rate limiting behind proxies/load balancers
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet());
 
