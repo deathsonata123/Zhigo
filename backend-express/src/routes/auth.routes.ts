@@ -1,8 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { CognitoAuthService } from '../services/auth/cognito-service';
+import { getDatabase } from '../services/database/client';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 const router = Router();
-const authService = CognitoAuthService.getInstance();
+
+// JWT secret (in production, use environment variable)
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
 
 // POST /api/auth/signin
 router.post('/signin', async (req: Request, res: Response) => {
@@ -15,27 +19,56 @@ router.post('/signin', async (req: Request, res: Response) => {
             });
         }
 
-        const result = await authService.signIn(email, password);
+        const db = getDatabase();
+
+        // Find user by email
+        const user = await db.queryOne<any>(
+            'SELECT * FROM users WHERE email = $1',
+            [email]
+        );
+
+        if (!user) {
+            return res.status(401).json({
+                error: 'Incorrect email or password'
+            });
+        }
+
+        // Verify password
+        const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+        if (!passwordMatch) {
+            return res.status(401).json({
+                error: 'Incorrect email or password'
+            });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                userId: user.id,
+                email: user.email,
+                role: user.role
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
 
         res.json({
             success: true,
-            data: result
+            data: {
+                token,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    fullName: user.full_name,
+                    phone: user.phone,
+                    role: user.role
+                }
+            }
         });
     } catch (error: any) {
-        let message = 'Sign in failed';
-        let status = 401;
-
-        if (error.name === 'NotAuthorizedException') {
-            message = 'Incorrect email or password';
-        } else if (error.name === 'UserNotConfirmedException') {
-            message = 'Please confirm your email first';
-            status = 403;
-        } else if (error.name === 'UserNotFoundException') {
-            message = 'User not found';
-            status = 404;
-        }
-
-        res.status(status).json({ error: message });
+        console.error('Sign in error:', error);
+        res.status(500).json({ error: 'Sign in failed' });
     }
 });
 
@@ -44,36 +77,70 @@ router.post('/signup', async (req: Request, res: Response) => {
     try {
         const { email, password, fullName, phone, role } = req.body;
 
+        console.log('Signup request:', { email, fullName, phone, role });
+
         if (!email || !password || !fullName) {
             return res.status(400).json({
                 error: 'Email, password, and full name are required'
             });
         }
 
-        const attributes: Record<string, string> = {
-            email,
-            name: fullName
-        };
+        const db = getDatabase();
 
-        if (phone) attributes.phone_number = phone;
-        if (role) attributes['custom:role'] = role;
+        // Check if user already exists
+        const existingUser = await db.queryOne<any>(
+            'SELECT id FROM users WHERE email = $1',
+            [email]
+        );
 
-        const result = await authService.signUp(email, password, attributes);
+        if (existingUser) {
+            return res.status(409).json({
+                error: 'An account with this email already exists'
+            });
+        }
+
+        // Hash password
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(password, saltRounds);
+
+        // Create user in database
+        const newUser = await db.queryOne<any>(
+            `INSERT INTO users (email, password_hash, full_name, phone, role, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+             RETURNING id, email, full_name, phone, role, created_at`,
+            [email, passwordHash, fullName, phone || null, role || 'customer']
+        );
+
+        console.log('User created:', newUser);
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                userId: newUser.id,
+                email: newUser.email,
+                role: newUser.role
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
 
         res.json({
             success: true,
-            data: result
+            data: {
+                token,
+                user: {
+                    id: newUser.id,
+                    email: newUser.email,
+                    fullName: newUser.full_name,
+                    phone: newUser.phone,
+                    role: newUser.role
+                }
+            }
         });
     } catch (error: any) {
+        console.error('Sign up error:', error);
         let message = 'Sign up failed';
         let status = 400;
-
-        if (error.name === 'UsernameExistsException') {
-            message = 'An account with this email already exists';
-            status = 409;
-        } else if (error.name === 'InvalidPasswordException') {
-            message = 'Password does not meet requirements';
-        }
 
         res.status(status).json({ error: message });
     }
