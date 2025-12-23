@@ -112,7 +112,7 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProvid
   void _showLoginModal(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => const LoginScreen(),
+      builder: (context) => LoginScreen(),
     );
   }
 

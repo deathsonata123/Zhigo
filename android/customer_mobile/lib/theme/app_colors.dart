@@ -7,6 +7,7 @@ class AppColors {
 
   // Accent (Action) - Used ONLY for primary actions
   static const Color accent = Color(0xFFE07A5F); // Earthy Terracotta
+  static const Color secondary = Color(0xFFF4A261); // Lighter terracotta for gradients
   
   // Base Colors
   static const Color baseBlack = Color(0xFF0C0C0C); // Primary text, dark mode bg (future)

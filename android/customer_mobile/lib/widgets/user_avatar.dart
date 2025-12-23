@@ -28,7 +28,7 @@ class UserAvatar extends StatelessWidget {
           shape: BoxShape.circle,
           gradient: imageUrl == null
               ? LinearGradient(
-                  colors: [AppColors.accent, AppColors.accentDark],
+                  colors: [AppColors.accent, AppColors.secondary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
