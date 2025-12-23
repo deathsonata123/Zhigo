@@ -79,23 +79,9 @@ app.use(helmet());
 
 // CORS - Allow all origins for development
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps, curl, Postman)
-        if (!origin) return callback(null, true);
-
-        // If ALLOWED_ORIGINS is set, check against the list
-        if (process.env.ALLOWED_ORIGINS) {
-            const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');
-            if (allowedOrigins.includes(origin)) {
-                return callback(null, true);
-            }
-            return callback(new Error('Not allowed by CORS'));
-        }
-
-        // Otherwise allow all origins
-        return callback(null, true);
-    },
-    credentials: true
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parsing
