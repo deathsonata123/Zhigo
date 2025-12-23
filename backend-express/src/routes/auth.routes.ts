@@ -146,6 +146,8 @@ router.post('/signup', async (req: Request, res: Response) => {
     }
 });
 
+// TODO: Implement with database auth
+/*
 // POST /api/auth/confirm
 router.post('/confirm', async (req: Request, res: Response) => {
     try {
@@ -176,7 +178,10 @@ router.post('/confirm', async (req: Request, res: Response) => {
         res.status(status).json({ error: message });
     }
 });
+*/
 
+// TODO: Implement with database auth
+/*
 // POST /api/auth/signout
 router.post('/signout', async (req: Request, res: Response) => {
     try {
@@ -199,7 +204,10 @@ router.post('/signout', async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Sign out failed' });
     }
 });
+*/
 
+// TODO: Implement with database auth
+/*
 // GET /api/auth/me
 router.get('/me', async (req: Request, res: Response) => {
     try {
@@ -230,7 +238,10 @@ router.get('/me', async (req: Request, res: Response) => {
         res.status(status).json({ error: message });
     }
 });
+*/
 
+// TODO: Implement with database auth
+/*
 // POST /api/auth/forgot-password
 router.post('/forgot-password', async (req: Request, res: Response) => {
     try {
@@ -280,5 +291,6 @@ router.post('/reset-password', async (req: Request, res: Response) => {
         res.status(400).json({ error: message });
     }
 });
+*/
 
 export default router;
