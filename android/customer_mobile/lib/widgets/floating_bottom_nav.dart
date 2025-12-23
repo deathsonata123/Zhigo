@@ -7,9 +7,9 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/signup_screen.dart';
+import 'user_avatar.dart';
 
-/// Floating Bottom Navigation with Dropdown
-/// Hover effects, unified home+arrow, icon-only dropdown, cart button
+/// Floating Bottom Navigation with Avatar Dropdown
 class FloatingBottomNav extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTap;
@@ -26,10 +26,14 @@ class FloatingBottomNav extends StatefulWidget {
 
 class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProviderStateMixin {
   bool _showDropdown = false;
+  bool _showAvatarMenu = false;
   int? _hoveredIndex;
+  int? _hoveredAvatarIndex;
   late AnimationController _dropdownController;
+  late AnimationController _avatarMenuController;
   late AnimationController _arrowController;
   late Animation<double> _dropdownAnimation;
+  late Animation<double> _avatarMenuAnimation;
   late Animation<double> _arrowRotation;
 
   @override
@@ -37,6 +41,11 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProvid
     super.initState();
     
     _dropdownController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    
+    _avatarMenuController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
@@ -51,6 +60,11 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProvid
       curve: Curves.easeOut,
     );
     
+    _avatarMenuAnimation = CurvedAnimation(
+      parent: _avatarMenuController,
+      curve: Curves.easeOut,
+    );
+    
     _arrowRotation = Tween<double>(begin: 0, end: 0.5).animate(
       CurvedAnimation(parent: _arrowController, curve: Curves.easeInOut),
     );
@@ -59,6 +73,7 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProvid
   @override
   void dispose() {
     _dropdownController.dispose();
+    _avatarMenuController.dispose();
     _arrowController.dispose();
     super.dispose();
   }
@@ -76,251 +91,277 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProvid
     });
   }
 
+  void _toggleAvatarMenu() {
+    setState(() {
+      _showAvatarMenu = !_showAvatarMenu;
+      if (_showAvatarMenu) {
+        _avatarMenuController.forward();
+      } else {
+        _avatarMenuController.reverse();
+      }
+    });
+  }
+
+  void _showSignupModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const SignupScreen(),
+    );
+  }
+
+  void _showLoginModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const LoginScreen(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Dropdown Menu (icon-only with hover)
-        if (_showDropdown)
-          Positioned(
-            bottom: 80,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: FadeTransition(
-                opacity: _dropdownAnimation,
-                child: ScaleTransition(
-                  scale: _dropdownAnimation,
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.xs),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1C1C1E).withOpacity(0.95),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        return Stack(
+          children: [
+            // Main Dropdown Menu (hover-enabled)
+            if (_showDropdown)
+              Positioned(
+                bottom: 80,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: FadeTransition(
+                    opacity: _dropdownAnimation,
+                    child: ScaleTransition(
+                      scale: _dropdownAnimation,
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSpacing.xs),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1C1C1E).withOpacity(0.95),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildDropdownIcon(Icons.map_outlined, 'Map', () {
-                          _toggleDropdown();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => const SimpleMapScreen()),
-                          );
-                        }),
-                        _buildDropdownIcon(Icons.shopping_cart_outlined, 'Cart', () {
-                          _toggleDropdown();
-                          // TODO: Navigate to cart
-                        }),
-                        _buildDropdownIcon(Icons.person_outline, 'Profile', () {
-                          _toggleDropdown();
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => const UserProfileScreen()),
-                          );
-                        }),
-                        _buildDropdownIcon(Icons.favorite_outline, 'Favorites', () {
-                          _toggleDropdown();
-                        }),
-                        // Sign Up button (only when not authenticated)
-                        Consumer<AuthProvider>(
-                          builder: (context, auth, _) {
-                            if (!auth.isAuthenticated) {
-                              return _buildDropdownIcon(Icons.people_outline, 'Sign Up', () {
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildDropdownIcon(Icons.map_outlined, 'Map', () {
+                              _toggleDropdown();
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (context) => const SimpleMapScreen()),
+                              );
+                            }),
+                            _buildDropdownIcon(Icons.shopping_cart_outlined, 'Cart', () {
+                              _toggleDropdown();
+                            }),
+                            _buildDropdownIcon(Icons.favorite_outline, 'Favorites', () {
+                              _toggleDropdown();
+                            }),
+                            // Show signup icon ONLY when not logged in
+                            if (!auth.isAuthenticated)
+                              _buildDropdownIcon(Icons.people_outline, 'Sign Up', () {
                                 _toggleDropdown();
                                 _showSignupModal(context);
-                              });
-                            }
-                            return const SizedBox.shrink();
-                          },
+                              }),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ),
 
-        // Main Navigation Bar (reduced height, more transparent)
-        Positioned(
-          bottom: AppSpacing.sm,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: 8, // Reduced from AppSpacing.xs
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1E).withOpacity(0.85), // More transparent
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
+            // Avatar Dropdown Menu (only when logged in)
+            if (_showAvatarMenu && auth.isAuthenticated)
+              Positioned(
+                bottom: 80,
+                right: 20,
+                child: FadeTransition(
+                  opacity: _avatarMenuAnimation,
+                  child: ScaleTransition(
+                    scale: _avatarMenuAnimation,
+                    alignment: Alignment.bottomRight,
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.xs),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1C1E).withOpacity(0.95),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildAvatarMenuItem(Icons.person_outline, () {
+                            _toggleAvatarMenu();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (context) => const UserProfileScreen()),
+                            );
+                          }, 0),
+                          _buildAvatarMenuItem(Icons.settings_outlined, () {
+                            _toggleAvatarMenu();
+                            // TODO: Navigate to settings
+                          }, 1),
+                          _buildAvatarMenuItem(Icons.receipt_long_outlined, () {
+                            _toggleAvatarMenu();
+                            // TODO: Navigate to billings
+                          }, 2),
+                          _buildAvatarMenuItem(Icons.logout_outlined, () {
+                            _toggleAvatarMenu();
+                            auth.signOut();
+                          }, 3),
+                        ],
+                      ),
+                    ),
                   ),
-                ],
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Home + Dropdown Arrow (UNIFIED - no gap)
-                  GestureDetector(
-                    onTap: _toggleDropdown,
-                    child: MouseRegion(
-                      onEnter: (_) => setState(() => _hoveredIndex = -1),
-                      onExit: (_) => setState(() => _hoveredIndex = null),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xs,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _hoveredIndex == -1 
-                              ? AppColors.baseWhite.withOpacity(0.1)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.home_rounded,
-                              size: 24,
-                              color: widget.currentIndex == 0 
-                                  ? AppColors.accent 
-                                  : AppColors.baseWhite.withOpacity(0.7),
+
+            // Main Navigation Bar
+            Positioned(
+              bottom: AppSpacing.sm,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1C1E).withOpacity(0.85),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Home + Dropdown Arrow (hover to open)
+                      MouseRegion(
+                        onEnter: (_) {
+                          setState(() {
+                            _hoveredIndex = -1;
+                            _showDropdown = true;
+                            _dropdownController.forward();
+                            _arrowController.forward();
+                          });
+                        },
+                        onExit: (_) {
+                          setState(() => _hoveredIndex = null);
+                        },
+                        child: GestureDetector(
+                          onTap: _toggleDropdown,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs,
+                              vertical: 6,
                             ),
-                            // Arrow right next to home (no gap)
-                            RotationTransition(
-                              turns: _arrowRotation,
-                              child: Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                size: 18,
-                                color: AppColors.baseWhite.withOpacity(0.6),
+                            decoration: BoxDecoration(
+                              color: _hoveredIndex == -1
+                                  ? AppColors.baseWhite.withOpacity(0.1)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.home_rounded,
+                                  size: 24,
+                                  color: widget.currentIndex == 0
+                                      ? AppColors.accent
+                                      : AppColors.baseWhite.withOpacity(0.7),
+                                ),
+                                const SizedBox(width: 4),
+                                RotationTransition(
+                                  turns: _arrowRotation,
+                                  child: Icon(
+                                    Icons.keyboard_arrow_down,
+                                    size: 20,
+                                    color: AppColors.baseWhite.withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: AppSpacing.sm),
+
+                      // Cart Icon
+                      _buildNavIcon(Icons.shopping_cart_outlined, 1),
+
+                      const SizedBox(width: AppSpacing.sm),
+
+                      // Avatar or Signup Icon
+                      if (auth.isAuthenticated)
+                        MouseRegion(
+                          onEnter: (_) => setState(() => _hoveredIndex = 2),
+                          onExit: (_) => setState(() => _hoveredIndex = null),
+                          child: GestureDetector(
+                            onTap: _toggleAvatarMenu,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: _hoveredIndex == 2
+                                    ? Border.all(color: AppColors.accent, width: 2)
+                                    : null,
+                              ),
+                              child: UserAvatar(
+                                name: auth.user?['fullName'] ?? auth.user?['email'],
+                                imageUrl: auth.user?['avatarUrl'],
+                                size: 32,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
+                          ),
+                        )
+                      else
+                        _buildNavIcon(Icons.people_outline, 2, onTap: () => _showSignupModal(context)),
+                    ],
                   ),
-                  
-                  const SizedBox(width: AppSpacing.md),
-                  
-                  _buildNavItem(
-                    icon: Icons.search_rounded,
-                    index: 1,
-                    label: 'Search',
-                  ),
-                  
-                  const SizedBox(width: AppSpacing.md),
-                  
-                  const SizedBox(width: AppSpacing.md),
-                  
-                  _buildAINavItem(),
-                  
-                  const SizedBox(width: AppSpacing.md),
-
-                  // Profile icon - only show when authenticated
-                  Consumer<AuthProvider>(
-                    builder: (context, auth, _) {
-                      if (auth.isAuthenticated) {
-                        return Row(
-                          children: [
-                            const SizedBox(width: AppSpacing.md),
-                            _buildNavItem(
-                              icon: Icons.person_rounded,
-                              index: 3,
-                              label: 'Profile',
-                            ),
-                          ],
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildDropdownIcon(IconData icon, String tooltip, VoidCallback onTap) {
-    return Tooltip(
-      message: tooltip,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Builder(
-          builder: (context) {
-            bool isHovered = false;
-            return StatefulBuilder(
-              builder: (context, setState) {
-                return MouseRegion(
-                  onEnter: (_) => setState(() => isHovered = true),
-                  onExit: (_) => setState(() => isHovered = false),
-                  child: GestureDetector(
-                    onTap: onTap,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.all(AppSpacing.xs),
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      decoration: BoxDecoration(
-                        color: isHovered 
-                            ? AppColors.accent.withOpacity(0.2)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        icon,
-                        size: 22,
-                        color: isHovered 
-                            ? AppColors.accent
-                            : AppColors.baseWhite.withOpacity(0.8),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required int index,
-    required String label,
-  }) {
+  Widget _buildNavIcon(IconData icon, int index, {VoidCallback? onTap}) {
     final isActive = widget.currentIndex == index;
     final isHovered = _hoveredIndex == index;
-    
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hoveredIndex = index),
       onExit: (_) => setState(() => _hoveredIndex = null),
       child: GestureDetector(
-        onTap: () => widget.onTap(index),
+        onTap: onTap ?? () => widget.onTap(index),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xs,
-            vertical: 6,
-          ),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isHovered 
+            color: isHovered
                 ? AppColors.baseWhite.withOpacity(0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
@@ -328,83 +369,56 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProvid
           child: Icon(
             icon,
             size: 24,
-            color: isActive 
-                ? AppColors.accent 
-                : (isHovered 
-                    ? AppColors.baseWhite.withOpacity(0.9)
-                    : AppColors.baseWhite.withOpacity(0.6)),
+            color: isActive
+                ? AppColors.accent
+                : AppColors.baseWhite.withOpacity(0.7),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildAINavItem() {
-    final isActive = widget.currentIndex == 2;
-    final isHovered = _hoveredIndex == 2;
-    
+  Widget _buildDropdownIcon(IconData icon, String label, VoidCallback onTap) {
     return MouseRegion(
-      onEnter: (_) => setState(() => _hoveredIndex = 2),
-      onExit: (_) => setState(() => _hoveredIndex = null),
-      child: GestureDetector(
-        onTap: () => widget.onTap(2),
+      onEnter: (_) => setState(() {}),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(
+            icon,
+            size: 24,
+            color: AppColors.baseWhite.withOpacity(0.9),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarMenuItem(IconData icon, VoidCallback onTap, int index) {
+    final isHovered = _hoveredAvatarIndex == index;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hoveredAvatarIndex = index),
+      onExit: (_) => setState(() => _hoveredAvatarIndex = null),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(10),
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            // Always glowing, MORE when active or hovered
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.accent.withOpacity(
-                  isActive ? 0.7 : (isHovered ? 0.5 : 0.4)
-                ),
-                blurRadius: isActive ? 24 : (isHovered ? 20 : 16),
-                spreadRadius: isActive ? 6 : (isHovered ? 4 : 2),
-              ),
-            ],
-            gradient: RadialGradient(
-              colors: [
-                AppColors.accent.withOpacity(
-                  isActive ? 0.4 : (isHovered ? 0.3 : 0.2)
-                ),
-                Colors.transparent,
-              ],
-            ),
+            color: isHovered
+                ? AppColors.baseWhite.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
-            Icons.auto_awesome_rounded,
+            icon,
             size: 24,
-            color: AppColors.accent,
+            color: AppColors.baseWhite.withOpacity(0.9),
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showSignupModal(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 650),
-          padding: const EdgeInsets.all(24),
-          child: SignupScreen(),
-        ),
-      ),
-    );
-  }
-
-  void _showLoginModal(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
-          padding: const EdgeInsets.all(24),
-          child: LoginScreen(),
         ),
       ),
     );

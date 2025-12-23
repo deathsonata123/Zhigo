@@ -12,19 +12,19 @@ class ApiConfig {
   static const String apiPrefix = '/api';
   
   // Auth endpoints
-  static String get authLogin => '$baseUrl$apiPrefix/auth/login';
-  static String get authSignup => '$baseUrl$apiPrefix/auth/signup';
-  static String get authLogout => '$baseUrl$apiPrefix/auth/logout';
+  static String get authLogin => '$apiPrefix/auth/login';
+  static String get authSignup => '$apiPrefix/auth/signup';
+  static String get authLogout => '$apiPrefix/auth/logout';
   
   // Restaurant endpoints
-  static String get restaurants => '$baseUrl$apiPrefix/restaurants';
-  static String restaurantDetails(String id) => '$baseUrl$apiPrefix/restaurants/$id';
-  static String restaurantMenu(String id) => '$baseUrl$apiPrefix/restaurants/$id/menu';
+  static String get restaurants => '$apiPrefix/restaurants';
+  static String restaurantDetails(String id) => '$apiPrefix/restaurants/$id';
+  static String restaurantMenu(String id) => '$apiPrefix/restaurants/$id/menu';
   
   // Order endpoints
-  static String get orders => '$baseUrl$apiPrefix/orders';
-  static String orderDetails(String id) => '$baseUrl$apiPrefix/orders/$id';
+  static String get orders => '$apiPrefix/orders';
+  static String orderDetails(String id) => '$apiPrefix/orders/$id';
   
   // User endpoints
-  static String get userProfile => '$baseUrl$apiPrefix/user/profile';
+  static String get userProfile => '$apiPrefix/user/profile';
 }

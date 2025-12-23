@@ -180,6 +180,24 @@ class _SignupScreenState extends State<SignupScreen> {
                       )
                     : const Text('Sign Up', style: TextStyle(fontSize: 16)),
               ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Already have an account? '),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close signup modal
+                      // Show login modal
+                      showDialog(
+                        context: context,
+                        builder: (context) => LoginScreen(),
+                      );
+                    },
+                    child: const Text('Sign In'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),

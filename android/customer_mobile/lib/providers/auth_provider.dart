@@ -81,19 +81,27 @@ class AuthProvider with ChangeNotifier {
         phone: phone,
       );
 
-      if (result['success'] == true) {
+      print('🔍 Signup result: $result');
+
+      if (result['success'] == true && result['data'] != null) {
+        final data = result['data'] as Map<String, dynamic>;
+        
+        // Token is already saved in AuthService
+        
+        // Set user data
         _isAuthenticated = true;
-        _user = result['data'];
+        _user = data['user']; // Extract user from data.user
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
-        _error = result['message'];
+        _error = result['error'] ?? 'Sign up failed';
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
+      print('🔴 Signup error: $e');
       _error = e.toString();
       _isLoading = false;
       notifyListeners();

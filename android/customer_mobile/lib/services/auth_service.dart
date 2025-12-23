@@ -12,6 +12,11 @@ class AuthService {
     required String phone,
   }) async {
     try {
+      // DEBUG: Print the signup URL
+      print('🔍 DEBUG: Signup URL = ${ApiConfig.authSignup}');
+      print('🔍 DEBUG: Base URL = ${ApiConfig.baseUrl}');
+      print('🔍 DEBUG: Full payload = {email: $email, password: ***, fullName: $name, phone: $phone, role: customer}');
+      
       final response = await _apiService.post(
         ApiConfig.authSignup,
         data: {
@@ -24,16 +29,27 @@ class AuthService {
       );
       
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data as Map<String, dynamic>;
+        final responseData = response.data as Map<String, dynamic>;
         
-        // Save token if provided
-        if (data.containsKey('token')) {
-          await _apiService.saveAuthToken(data['token']);
+        // Handle new backend response format: {success: true, data: {token, user}}
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final data = responseData['data'] as Map<String, dynamic>;
+          
+          // Save token if provided
+          if (data['token'] != null) {
+            await _apiService.saveAuthToken(data['token']);
+          }
+          
+          return {
+            'success': true,
+            'data': data, // Return the whole data object (contains token and user)
+          };
         }
         
+        // Fallback for old response format
         return {
           'success': true,
-          'data': data,
+          'data': responseData,
         };
       }
       
