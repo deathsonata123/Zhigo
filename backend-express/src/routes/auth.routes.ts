@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getDatabase } from '../services/database/client';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const router = Router();
@@ -143,6 +143,78 @@ router.post('/signup', async (req: Request, res: Response) => {
         let status = 400;
 
         res.status(status).json({ error: message });
+    }
+});
+
+// POST /api/auth/login
+router.post('/login', async (req: Request, res: Response) => {
+    try {
+        const { email, password } = req.body;
+
+        console.log('Login request:', { email });
+
+        if (!email || !password) {
+            return res.status(400).json({
+                error: 'Email and password are required'
+            });
+        }
+
+        const db = getDatabase();
+
+        // Get user by email
+        const users = await db.query<{
+            id: string;
+            email: string;
+            password_hash: string;
+            full_name: string;
+            phone: string;
+            role: string;
+        }>('SELECT * FROM users WHERE email = $1', [email]);
+
+        if (users.length === 0) {
+            return res.status(401).json({
+                error: 'Invalid email or password'
+            });
+        }
+
+        const user = users[0];
+
+        // Verify password
+        const isValid = await bcrypt.compare(password, user.password_hash);
+
+        if (!isValid) {
+            return res.status(401).json({
+                error: 'Invalid email or password'
+            });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            {
+                id: user.id,
+                email: user.email,
+                role: user.role
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.json({
+            success: true,
+            data: {
+                token,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    fullName: user.full_name,
+                    phone: user.phone,
+                    role: user.role
+                }
+            }
+        });
+    } catch (error: any) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Login failed' });
     }
 });
 
