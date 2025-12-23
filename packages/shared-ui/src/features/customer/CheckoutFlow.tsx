@@ -70,7 +70,7 @@ function CheckoutPageContent() {
         try {
             const user = await getCurrentUser();
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
             // Try to get customer profile
             const customersRes = await fetch(`${apiUrl}/api/users?userId=${user.userId}`);
@@ -167,7 +167,7 @@ function CheckoutPageContent() {
             console.log('📦 Placing order for restaurant:', restaurantId);
 
             // Get restaurant data to fetch its coordinates
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
             const restaurantRes = await fetch(`${apiUrl}/api/restaurants/${restaurantId}`);
 
             if (!restaurantRes.ok) {

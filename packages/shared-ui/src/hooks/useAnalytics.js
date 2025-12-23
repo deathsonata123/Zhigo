@@ -25,7 +25,7 @@ export const useAnalytics = (restaurantId, period) => {
             setLoading(true);
             try {
                 const dateRange = getDateRange(period);
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
                 const [ordersResult, menuItemsResult, reviewsResult] = await Promise.all([
                     fetch(`${apiUrl}/api/orders?restaurantId=${restaurantId}&createdAtGte=${dateRange.start.toISOString()}`).then(r => r.json()).then(orders => ({ data: orders })),
                     fetch(`${apiUrl}/api/menu-items?restaurantId=${restaurantId}`).then(r => r.json()).then(items => ({ data: items })),
@@ -207,7 +207,7 @@ export const useRestaurantId = () => {
     useEffect(() => {
         const fetchRestaurantId = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
                 const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?status=approved&limit=1`);
                 if (restaurantsRes.ok) {
                     const restaurants = await restaurantsRes.json();

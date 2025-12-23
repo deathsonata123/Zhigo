@@ -69,7 +69,7 @@ export default function RestaurantOrdersPage() {
       const user = await getCurrentUser();
       console.log('👤 Current user:', user.userId);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${user.userId}`);
       if (!restaurantsRes.ok) throw new Error('No restaurant found');
       const restaurants = await restaurantsRes.json();
@@ -118,7 +118,7 @@ export default function RestaurantOrdersPage() {
     console.log('✅ Accepting order:', selectedOrder.id);
     setIsAccepting(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const updateRes = await fetch(`${apiUrl}/api/orders/${selectedOrder.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -173,7 +173,7 @@ export default function RestaurantOrdersPage() {
     console.log('❌ Rejecting order:', selectedOrder.id);
     setIsRejecting(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const updateRes = await fetch(`${apiUrl}/api/orders/${selectedOrder.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -218,7 +218,7 @@ export default function RestaurantOrdersPage() {
   const handleMarkPreparing = async (orderId: string) => {
     console.log('👨‍🍳 Marking order as preparing:', orderId);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const updateRes = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -253,7 +253,7 @@ export default function RestaurantOrdersPage() {
   const handleMarkReady = async (orderId: string, order: Order) => {
     console.log('✅ Marking order as ready:', orderId);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const updateRes = await fetch(`${apiUrl}/api/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -299,7 +299,7 @@ export default function RestaurantOrdersPage() {
 
       console.log('🎯 Target zone for riders:', targetZone);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const ridersRes = await fetch(`${apiUrl}/api/riders?status=approved&isOnline=true`);
       if (!ridersRes.ok) throw new Error('Failed to fetch riders');
       const riders = await ridersRes.json();
@@ -367,7 +367,7 @@ export default function RestaurantOrdersPage() {
         console.log(`  📨 Creating notification for: ${rider.fullName} (${rider.id})`);
 
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
           const createRes = await fetch(`${apiUrl}/api/rider-notifications`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

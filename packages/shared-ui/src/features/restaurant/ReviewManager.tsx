@@ -52,7 +52,7 @@ export default function ReviewsPage() {
       const user = await getCurrentUser();
 
       // Get restaurant owned by current user
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
       const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${user.userId}`);
       if (!restaurantsRes.ok) throw new Error('Failed to fetch restaurants');

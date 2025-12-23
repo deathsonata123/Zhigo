@@ -25,11 +25,10 @@ import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
 import { useToast } from '../../hooks/use-toast';
 import { EditMenuItemDialog } from '../../components/edit-menu-item-dialog';
-// Amplify imports for database operations and authentication
+// Backend utility imports
 import { getUrl } from '../../lib/storage';
 import { getCurrentUser } from '../../lib/auth';
 
-// Initialize Amplify client for database operations
 
 export default function MenuPage() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -70,7 +69,7 @@ export default function MenuPage() {
     }, [restaurantId]);
 
     /**
-     * Fetch the currently logged-in user from AWS Cognito
+     * Fetch the currently logged-in user from the backend
      */
     const fetchCurrentUser = async () => {
         try {
@@ -95,7 +94,7 @@ export default function MenuPage() {
         if (!currentUserId) return;
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
             const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${currentUserId}`);
 
             if (restaurantsRes.ok) {
@@ -137,7 +136,7 @@ export default function MenuPage() {
         if (!restaurantId) return;
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
             const itemsRes = await fetch(`${apiUrl}/api/menu-items?restaurantId=${restaurantId}`);
 
             if (!itemsRes.ok) throw new Error('Failed to fetch menu items');
@@ -185,7 +184,7 @@ export default function MenuPage() {
      */
     const handleAvailabilityChange = async (itemId: string, newAvailability: boolean) => {
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
             const updateRes = await fetch(`${apiUrl}/api/menu-items/${itemId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -221,7 +220,7 @@ export default function MenuPage() {
         }
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
             const deleteRes = await fetch(`${apiUrl}/api/menu-items/${itemId}`, {
                 method: 'DELETE'
             });

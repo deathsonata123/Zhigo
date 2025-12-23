@@ -10,7 +10,6 @@ import { Badge } from '../../components/ui/badge';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
-// Generate the Amplify Data client
 
 type Rider = {
     id: string;
@@ -35,7 +34,7 @@ export default function RiderManagementPage() {
     const fetchApplications = useCallback(async () => {
         try {
             setLoading(true);
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
             const response = await fetch(`${apiUrl}/api/riders`);
 
             if (!response.ok) throw new Error('Failed to fetch riders');
@@ -88,7 +87,7 @@ export default function RiderManagementPage() {
             console.log('Attempting to approve rider:', rider.id);
 
             // Update rider status via API
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
             const response = await fetch(`${apiUrl}/api/riders/${rider.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -136,7 +135,7 @@ export default function RiderManagementPage() {
 
         try {
             // Update rider status via API
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
             const response = await fetch(`${apiUrl}/api/riders/${riderId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },

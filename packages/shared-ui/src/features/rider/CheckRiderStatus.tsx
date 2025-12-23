@@ -33,7 +33,7 @@ export default function CheckRiderStatusPage() {
         throw new Error("User not authenticated or user ID not available.");
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/riders?userId=${currentUser.userId}`);
 
       if (!response.ok) {

@@ -34,7 +34,7 @@ function RiderStatusToggle({ isRider, riderId }: { isRider: boolean; riderId: st
     const loadRiderStatus = async () => {
       if (riderId) {
         try {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
           const response = await fetch(`${apiUrl}/api/riders/${riderId}`);
           if (response.ok) {
             const rider = await response.json();
@@ -54,7 +54,7 @@ function RiderStatusToggle({ isRider, riderId }: { isRider: boolean; riderId: st
 
     setIsUpdating(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       // Update rider's online status via Express.js API
       const response = await fetch(`${apiUrl}/api/riders/${riderId}`, {
         method: 'PUT',
@@ -130,86 +130,11 @@ export function HeaderActions() {
     // Check auth state immediately on mount
     fetchUserAndRoles();
 
-    // Listen for auth events (including OAuth callbacks)
-    const hubListener = Hub.listen('auth', async ({ payload }) => {
-      // CRITICAL: Ignore tokenRefresh events to prevent spam
-      if (payload.event === 'tokenRefresh') {
-        return;
-      }
-
-      console.log('Auth Hub event received:', payload.event);
-
-      switch (payload.event) {
-        case 'signedIn':
-          console.log('signedIn event - User signed in, fetching roles...');
-          setTimeout(async () => {
-            await fetchUserAndRoles();
-            toast({
-              title: 'Login successful',
-              description: 'Welcome back!',
-            });
-          }, 500);
-          break;
-
-        case 'signInWithRedirect':
-          console.log('signInWithRedirect event - OAuth callback detected');
-          setTimeout(async () => {
-            await fetchUserAndRoles();
-            toast({
-              title: 'Login successful',
-              description: 'Welcome!',
-            });
-
-            const preAuthPath = sessionStorage.getItem('preAuthPath');
-            if (preAuthPath && preAuthPath !== pathname) {
-              sessionStorage.removeItem('preAuthPath');
-              window.location.href = preAuthPath;
-            }
-          }, 1000);
-          break;
-
-        case 'signedOut':
-          console.log('User signed out');
-          setUser(null);
-          setIsZhigoPartner(false);
-          setIsRider(false);
-          setRiderId(null);
-          setIsAdmin(false);
-          setIsDeveloper(false);
-          setDeveloperId(null);
-          break;
-
-        case 'signInWithRedirect_failure':
-          console.error('OAuth sign in failed:', payload.data);
-          toast({
-            title: 'Login failed',
-            description: 'There was an error signing in with Google.',
-            variant: 'destructive',
-          });
-          break;
-      }
-    });
-
-    const checkOAuthRedirect = async () => {
-      try {
-        const session = await fetchAuthSession();
-        if (session.tokens) {
-          console.log('OAuth session detected on page load');
-          await fetchUserAndRoles();
-        }
-      } catch (error) {
-        console.log('No OAuth session on page load');
-      }
-    };
-
-    const timeoutId = setTimeout(checkOAuthRedirect, 100);
-
     return () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
       clearTimeout(timeoutId);
-      hubListener();
     };
   }, [pathname]);
 
@@ -273,7 +198,7 @@ export function HeaderActions() {
 
   const checkRestaurantOwner = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/restaurants?ownerId=${userId}`);
 
       if (!response.ok) throw new Error('Failed to fetch restaurants');
@@ -310,7 +235,7 @@ export function HeaderActions() {
   // Check if user is an approved rider
   const checkRider = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/riders?userId=${userId}`);
 
       if (!response.ok) throw new Error('Failed to fetch riders');
@@ -334,7 +259,7 @@ export function HeaderActions() {
   // Check if user is an approved developer
   const checkDeveloper = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/developers?userId=${userId}`);
 
       if (!response.ok) throw new Error('Failed to fetch developers');
@@ -355,13 +280,10 @@ export function HeaderActions() {
     }
   };
 
-  // Check admin from Cognito groups in ID token
+  // Check admin from backend session/roles
   const checkAdminFromGroups = (idTokenPayload: any) => {
-    // Cognito groups are in the 'cognito:groups' claim
-    const groups = idTokenPayload?.['cognito:groups'] || [];
-    const isAdminUser = groups.includes('Admin');
-    setIsAdmin(isAdminUser);
-    console.log('Admin check from groups:', groups, 'Is admin?', isAdminUser);
+    // Admin check logic can be added here if needed from session
+    console.log('Admin check called');
   };
 
   const handleSignOut = async () => {

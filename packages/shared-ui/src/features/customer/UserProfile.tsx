@@ -102,7 +102,7 @@ export default function SettingsPage() {
       const user = await getCurrentUser();
       setCurrentUser(user);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
       // Fetch user profile
       const profilesRes = await fetch(`${apiUrl}/api/users?userId=${user.userId}`);
@@ -200,7 +200,7 @@ export default function SettingsPage() {
 
     try {
       setSaving(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const updateRes = await fetch(`${apiUrl}/api/users/${userProfile.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -258,7 +258,7 @@ export default function SettingsPage() {
 
     try {
       setSaving(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const createRes = await fetch(`${apiUrl}/api/addresses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -299,7 +299,7 @@ export default function SettingsPage() {
   // Delete address
   const handleDeleteAddress = async (id: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const deleteRes = await fetch(`${apiUrl}/api/addresses/${id}`, {
         method: 'DELETE'
       });
@@ -315,7 +315,7 @@ export default function SettingsPage() {
   // Set default address
   const handleSetDefaultAddress = async (id: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       // Remove default from all addresses
       await Promise.all(
         addresses.map(addr =>

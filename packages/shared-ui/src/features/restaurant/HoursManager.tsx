@@ -41,7 +41,7 @@ export default function HoursPage() {
       setLoading(true);
       const user = await getCurrentUser();
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
       // Get restaurant owned by current user
       const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${user.userId}`);
@@ -108,7 +108,7 @@ export default function HoursPage() {
     try {
       setSaving(true);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
       // Save or update each day's hours
       for (const hour of openingHours) {
@@ -165,7 +165,7 @@ export default function HoursPage() {
 
     try {
       setSaving(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
       const updateRes = await fetch(`${apiUrl}/api/restaurants/${restaurantId}`, {
         method: 'PUT',

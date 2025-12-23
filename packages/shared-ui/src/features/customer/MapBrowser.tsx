@@ -21,7 +21,6 @@ import {
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
-// Generate the Amplify Data client
 
 // ADMIN EMAIL - Only this user can access admin panel
 const ADMIN_EMAIL = "khanzayed197@gmail.com";
@@ -100,7 +99,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   // Check if user owns a restaurant by querying the Restaurant model
   const checkRestaurantOwner = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${userId}`);
 
       if (restaurantsRes.ok) {
@@ -121,7 +120,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   // Check if user is an approved rider
   const checkRider = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const ridersRes = await fetch(`${apiUrl}/api/riders?userId=${userId}`);
 
       if (ridersRes.ok) {
@@ -146,7 +145,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   // Check if user is an approved developer
   const checkDeveloper = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const developersRes = await fetch(`${apiUrl}/api/developers?userId=${userId}`);
 
       if (developersRes.ok) {

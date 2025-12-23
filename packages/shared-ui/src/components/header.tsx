@@ -26,7 +26,7 @@ function PromoBanner() {
     try {
       const user = await getCurrentUser();
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const restaurantsRes = await fetch(`${apiUrl}/api/restaurants?ownerId=${user.userId}`);
       if (restaurantsRes.ok) {
         const restaurants = await restaurantsRes.json();
@@ -123,7 +123,7 @@ export function Header() {
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
       // Check if user is a rider
       const response = await fetch(`${apiUrl}/api/riders?userId=${currentUser.userId}`);
@@ -160,7 +160,7 @@ export function Header() {
 
     try {
       const newStatus = !isOnline;
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
       // Update rider status via Express.js API
       const response = await fetch(`${apiUrl}/api/riders/${rider.id}`, {
@@ -184,7 +184,7 @@ export function Header() {
 
   const handleSignOut = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       // Set rider offline before signing out
       if (rider) {
         await fetch(`${apiUrl}/api/riders/${rider.id}`, {

@@ -3,6 +3,10 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../screens/map/simple_map_screen.dart';
 import '../screens/profile/user_profile_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/auth/signup_screen.dart';
 
 /// Floating Bottom Navigation with Dropdown
 /// Hover effects, unified home+arrow, icon-only dropdown, cart button
@@ -122,6 +126,18 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProvid
                         _buildDropdownIcon(Icons.favorite_outline, 'Favorites', () {
                           _toggleDropdown();
                         }),
+                        // Sign Up button (only when not authenticated)
+                        Consumer<AuthProvider>(
+                          builder: (context, auth, _) {
+                            if (!auth.isAuthenticated) {
+                              return _buildDropdownIcon(Icons.people_outline, 'Sign Up', () {
+                                _toggleDropdown();
+                                _showSignupModal(context);
+                              });
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -208,7 +224,30 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProvid
                   
                   const SizedBox(width: AppSpacing.md),
                   
+                  const SizedBox(width: AppSpacing.md),
+                  
                   _buildAINavItem(),
+                  
+                  const SizedBox(width: AppSpacing.md),
+
+                  // Profile icon - only show when authenticated
+                  Consumer<AuthProvider>(
+                    builder: (context, auth, _) {
+                      if (auth.isAuthenticated) {
+                        return Row(
+                          children: [
+                            const SizedBox(width: AppSpacing.md),
+                            _buildNavItem(
+                              icon: Icons.person_rounded,
+                              index: 3,
+                              label: 'Profile',
+                            ),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 ],
               ),
             ),
@@ -338,6 +377,34 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> with TickerProvid
             size: 24,
             color: AppColors.accent,
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showSignupModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 650),
+          padding: const EdgeInsets.all(24),
+          child: SignupScreen(),
+        ),
+      ),
+    );
+  }
+
+  void _showLoginModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+          padding: const EdgeInsets.all(24),
+          child: LoginScreen(),
         ),
       ),
     );

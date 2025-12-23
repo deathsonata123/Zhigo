@@ -98,7 +98,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   // Check if user owns a restaurant by querying the Restaurant model
   const checkRestaurantOwner = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/restaurants?ownerId=${userId}`);
 
       if (!response.ok) throw new Error('Failed to fetch restaurants');
@@ -119,7 +119,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   // Check if user is an approved rider
   const checkRider = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/riders?userId=${userId}`);
 
       if (!response.ok) throw new Error('Failed to fetch riders');
@@ -143,7 +143,7 @@ function MapSidebar({ onLightingChange }: { onLightingChange: (preset: keyof typ
   // Check if user is an approved developer
   const checkDeveloper = async (userId: string) => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/developers?userId=${userId}`);
 
       if (!response.ok) throw new Error('Failed to fetch developers');

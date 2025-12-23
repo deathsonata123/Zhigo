@@ -1,7 +1,7 @@
 // API Constants
 class ApiConstants {
   // Base EC2 API URL - Update with actual EC2 instance URL
-  static const String baseUrl = 'http://localhost:3000';
+  static const String baseUrl = 'http://52.74.236.219:3000';
   
   // API Endpoints
   static const String riders = '/api/riders';

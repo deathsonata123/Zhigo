@@ -1,9 +1,9 @@
 // packages/shared-ui/src/lib/storage.ts
-// Storage utility to replace aws-amplify/storage with Express.js backend S3 calls
+// Storage utility for Express.js backend S3 calls
 
 import { getStoredTokens } from './auth';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
 export interface UploadDataParams {
     path: string;

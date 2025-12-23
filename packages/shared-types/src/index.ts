@@ -5,5 +5,5 @@ export * from './models';
 // export * from './enums';      <-- Removed to prevent UserRole duplication
 // export * from './analytics';  <-- Removed to prevent AnalyticsData duplication
 
-export type { Schema } from './amplify-schema';
+
 export * from './api';

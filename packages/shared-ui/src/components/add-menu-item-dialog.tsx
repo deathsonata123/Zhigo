@@ -97,7 +97,7 @@ export function AddMenuItemDialog({
         console.log('✅ Image uploaded successfully:', imageUrl);
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/menu-items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

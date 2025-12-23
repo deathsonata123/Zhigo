@@ -27,7 +27,7 @@ export default function AdminDashboardPage() {
   const fetchDashboardStats = async () => {
     setLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
       const restaurantsRes = await fetch(`${apiUrl}/api/restaurants`);
       if (!restaurantsRes.ok) throw new Error('Failed to fetch restaurants');

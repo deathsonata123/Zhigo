@@ -34,7 +34,7 @@ export default function RiderEarningsPage() {
         try {
             const user = await getCurrentUser();
 
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
             // Get rider profile
             const ridersRes = await fetch(`${apiUrl}/api/riders?userId=${user.userId}`);

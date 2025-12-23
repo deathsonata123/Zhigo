@@ -1,7 +1,7 @@
 // packages/shared-ui/src/lib/auth.ts
-// Auth utility to replace aws-amplify/auth with Express.js backend calls
+// Auth utility for Express.js backend calls
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
 export interface AuthUser {
     userId: string;

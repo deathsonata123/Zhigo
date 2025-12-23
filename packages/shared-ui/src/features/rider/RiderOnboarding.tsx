@@ -346,7 +346,7 @@ export function RiderOnboarding() {
         throw new Error('You must be logged in to submit a rider application.');
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
 
       // Check for existing rider
       const ridersRes = await fetch(`${apiUrl}/api/riders?userId=${userId}`);

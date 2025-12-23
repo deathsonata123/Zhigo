@@ -7,20 +7,6 @@ class ApiConfig {
     defaultValue: 'http://52.74.236.219:3000',
   );
 
-  static const String awsRegion = String.fromEnvironment(
-    'AWS_REGION',
-    defaultValue: 'us-east-1',
-  );
-
-  static const String cognitoUserPoolId = String.fromEnvironment(
-    'COGNITO_USER_POOL_ID',
-    defaultValue: '',
-  );
-
-  static const String cognitoClientId = String.fromEnvironment(
-    'COGNITO_CLIENT_ID',
-    defaultValue: '',
-  );
 
   // API Endpoints
   static const String apiPrefix = '/api';

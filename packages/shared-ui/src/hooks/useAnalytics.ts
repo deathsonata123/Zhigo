@@ -45,7 +45,7 @@ export function useAnalytics(restaurantId: string, period: AnalyticsPeriod = 'to
       setLoading(true);
       try {
         // In a real app, use 'period' to filter the date range
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
         const ordersRes = await fetch(`${apiUrl}/api/orders?restaurantId=${restaurantId}`);
         if (!ordersRes.ok) throw new Error('Failed to fetch orders');
         const orders = await ordersRes.json();

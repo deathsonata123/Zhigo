@@ -131,7 +131,7 @@ export function EditMenuItemDialog({ open, onOpenChange, item, onItemUpdated, us
         console.log('✅ New image uploaded:', imageUrl);
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/menu-items/${item.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

@@ -46,7 +46,7 @@ export function RestaurantListing() {
     try {
       setLoading(true);
 
-      // Use new DataClient instead of Amplify
+      // Use new DataClient
       const restaurantData = await DataClient.restaurants.list();
 
       if (restaurantData) {

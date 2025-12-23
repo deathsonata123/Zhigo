@@ -252,7 +252,7 @@ export default function PartnerRegistrationPage() {
       console.log('💾 Restaurant data to save:', restaurantData);
 
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
       const response = await fetch(`${apiUrl}/api/restaurants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

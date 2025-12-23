@@ -29,7 +29,7 @@ export function OAuthHandler() {
       hasProcessed.current = true;
       console.log('[OAuthHandler] 🔍 OAuth redirect detected, processing...');
 
-      // Wait for Amplify to process OAuth tokens
+      // Wait for backend to process OAuth tokens
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       try {

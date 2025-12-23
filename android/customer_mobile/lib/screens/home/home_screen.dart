@@ -16,7 +16,10 @@ import '../../theme/app_text_styles.dart';
 import '../restaurant/restaurant_details_screen.dart';
 import '../search/search_modal.dart';
 import '../map/simple_map_screen.dart';
+import '../map/simple_map_screen.dart';
 import '../ai_chat/ai_chat_screen.dart';
+import '../auth/login_screen.dart';
+import '../profile/user_profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -57,6 +60,13 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => const AIChatScreen(),
+          ),
+        );
+        break;
+      case 3: // Profile (only when authenticated)
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const UserProfileScreen(),
           ),
         );
         break;

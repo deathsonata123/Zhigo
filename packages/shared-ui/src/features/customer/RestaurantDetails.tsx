@@ -156,7 +156,7 @@ export function RestaurantDetails({ restaurantId: id }: RestaurantDetailsProps) 
       try {
         setLoading(true);
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
         const restaurantRes = await fetch(`${apiUrl}/api/restaurants/${id}`);
         if (!restaurantRes.ok) return;
         const restaurantData = await restaurantRes.json();

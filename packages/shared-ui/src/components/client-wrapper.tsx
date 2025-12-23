@@ -8,8 +8,7 @@ import { MessageSquare } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
 
-// Note: Amplify.configure() is handled by the parent App's providers.tsx
-// This component assumes the environment is already configured.
+// This component handles the layout for the client side.
 
 export default function ClientWrapper({
   children,
@@ -22,17 +21,7 @@ export default function ClientWrapper({
   const isMapPage = pathname === '/map';
 
   useEffect(() => {
-    const hubListener = Hub.listen('auth', ({ payload }) => {
-      if (payload.event === 'signInWithRedirect') {
-        const savedPath = sessionStorage.getItem('preAuthPath');
-        if (savedPath && savedPath !== '/') {
-          router.push(savedPath);
-          sessionStorage.removeItem('preAuthPath');
-        }
-      }
-    });
-
-    return () => hubListener();
+    // Redirect handling is now managed by the OAuth provider and lib/auth.ts
   }, [router]);
 
   return (
