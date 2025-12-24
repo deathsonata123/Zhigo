@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
 import '../theme/app_spacing.dart';
+import '../screens/partner/partner_onboarding_screen.dart';
 
 /// App Footer - Main footer with company info and links
 class AppFooter extends StatelessWidget {
@@ -24,7 +25,6 @@ class AppFooter extends StatelessWidget {
         left: AppSpacing.screenMarginHorizontal,
         right: AppSpacing.screenMarginHorizontal,
         top: AppSpacing.sectionSpacing,
-        // No bottom padding
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -51,25 +51,24 @@ class AppFooter extends StatelessWidget {
             
             // Company
             Expanded(
-              child: _buildLinkSection('Company', [
+              child: _buildLinkSection(context, 'Company', [
                 {'label': 'About Us', 'route': '/about'},
                 {'label': 'Careers', 'route': '/careers'},
                 {'label': 'Press', 'route': '/press'},
               ]),
             ),
             
-            // Partnerships
+            // Partnerships (removed "Become a Developer")
             Expanded(
-              child: _buildLinkSection('Partnerships', [
+              child: _buildLinkSection(context, 'Partnerships', [
                 {'label': 'Become a Zhigo Partner', 'route': '/partner'},
                 {'label': 'Become a Rider', 'route': '/rider-signup'},
-                {'label': 'Become a Developer', 'route': '/developer'},
               ]),
             ),
             
             // Help
             Expanded(
-              child: _buildLinkSection('Help', [
+              child: _buildLinkSection(context, 'Help', [
                 {'label': 'Contact Us', 'route': '/contact'},
                 {'label': 'FAQs', 'route': '/faqs'},
               ]),
@@ -90,19 +89,19 @@ class AppFooter extends StatelessWidget {
       children: [
         _buildLogoSection(),
         const SizedBox(height: AppSpacing.md),
-        _buildLinkSection('Company', [
+        _buildLinkSection(context, 'Company', [
           {'label': 'About Us', 'route': '/about'},
           {'label': 'Careers', 'route': '/careers'},
           {'label': 'Press', 'route': '/press'},
         ]),
         const SizedBox(height: AppSpacing.md),
-        _buildLinkSection('Partnerships', [
+        // Removed "Become a Developer"
+        _buildLinkSection(context, 'Partnerships', [
           {'label': 'Become a Zhigo Partner', 'route': '/partner'},
           {'label': 'Become a Rider', 'route': '/rider-signup'},
-          {'label': 'Become a Developer', 'route': '/developer'},
         ]),
         const SizedBox(height: AppSpacing.md),
-        _buildLinkSection('Help', [
+        _buildLinkSection(context, 'Help', [
           {'label': 'Contact Us', 'route': '/contact'},
           {'label': 'FAQs', 'route': '/faqs'},
         ]),
@@ -146,7 +145,7 @@ class AppFooter extends StatelessWidget {
     );
   }
 
-  Widget _buildLinkSection(String title, List<Map<String, String>> links) {
+  Widget _buildLinkSection(BuildContext context, String title, List<Map<String, String>> links) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -159,20 +158,25 @@ class AppFooter extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         ...links.map((link) => Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-          child: TextButton(
-            onPressed: () {
-              // Navigate to route
-            },
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              alignment: Alignment.centerLeft,
-            ),
-            child: Text(
-              link['label']!,
-              style: AppTextStyles.small.copyWith(
-                color: AppColors.textSecondary,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () {
+                // Handle partner link specially
+                if (link['route'] == '/partner') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const PartnerOnboardingScreen(),
+                    ),
+                  );
+                }
+                // Other routes can be added as needed
+              },
+              child: Text(
+                link['label']!,
+                style: AppTextStyles.small.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ),

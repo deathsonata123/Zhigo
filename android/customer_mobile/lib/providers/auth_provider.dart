@@ -25,7 +25,15 @@ class AuthProvider with ChangeNotifier {
     _isAuthenticated = await _authService.isAuthenticated();
     
     if (_isAuthenticated) {
-      _user = await _authService.getUserProfile();
+      final response = await _authService.getUserProfile();
+      // Handle potential nested data structure from backend
+      if (response != null) {
+        if (response.containsKey('data')) {
+          _user = response['data'] as Map<String, dynamic>;
+        } else {
+          _user = response;
+        }
+      }
     }
     
     _isLoading = false;
@@ -43,9 +51,17 @@ class AuthProvider with ChangeNotifier {
         password: password,
       );
 
+      print('🔍 SignIn result: $result');
+
       if (result['success'] == true) {
         _isAuthenticated = true;
-        _user = result['data'];
+        // Extract user from result.data.user
+        final data = result['data'] as Map<String, dynamic>;
+        _user = data['user'] ?? data;
+        
+        print('🔍 User data stored: $_user');
+        print('🔍 fullName: ${_user?['fullName']}');
+        
         _isLoading = false;
         notifyListeners();
         return true;
@@ -90,12 +106,13 @@ class AuthProvider with ChangeNotifier {
         
         // Set user data
         _isAuthenticated = true;
-        _user = data['user']; // Extract user from data.user
+        // Correctly extract the user object which is inside result['data']['user']
+        _user = data['user']; 
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
-        _error = result['error'] ?? 'Sign up failed';
+        _error = result['message'] ?? result['error'] ?? 'Sign up failed';
         _isLoading = false;
         notifyListeners();
         return false;

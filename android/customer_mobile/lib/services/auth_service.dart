@@ -80,16 +80,26 @@ class AuthService {
       );
       
       if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
+        final responseData = response.data as Map<String, dynamic>;
         
-        // Save token
-        if (data.containsKey('token')) {
-          await _apiService.saveAuthToken(data['token']);
+        // Backend returns: { success: true, data: { token, user } }
+        if (responseData['success'] == true && responseData['data'] != null) {
+          final data = responseData['data'] as Map<String, dynamic>;
+          
+          // Save token from data.token
+          if (data['token'] != null) {
+            await _apiService.saveAuthToken(data['token']);
+          }
+          
+          return {
+            'success': true,
+            'data': data, // Contains both token and user
+          };
         }
         
         return {
-          'success': true,
-          'data': data,
+          'success': false,
+          'message': responseData['error'] ?? 'Login failed',
         };
       }
       
@@ -98,6 +108,7 @@ class AuthService {
         'message': 'Invalid credentials',
       };
     } catch (e) {
+      print('🔴 Sign in error: $e');
       return {
         'success': false,
         'message': e.toString(),

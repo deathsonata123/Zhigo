@@ -1,10 +1,10 @@
 class ApiConfig {
-  // EC2 Backend - Using HTTP (no SSL configured)
-  // EC2 IP: 52.74.236.219
+  // Using localhost for development
+  // For production, use EC2: http://52.74.236.219:3000
   
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://52.74.236.219:3000',
+    defaultValue: 'http://localhost:3000',
   );
 
 
@@ -26,5 +26,5 @@ class ApiConfig {
   static String orderDetails(String id) => '$apiPrefix/orders/$id';
   
   // User endpoints
-  static String get userProfile => '$apiPrefix/user/profile';
+  static String get userProfile => '$apiPrefix/users/profile';
 }

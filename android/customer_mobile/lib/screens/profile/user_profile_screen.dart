@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
 import '../../widgets/floating_bottom_nav.dart';
+import '../../widgets/user_avatar.dart';
 
 /// User Profile Page with tabs (Profile, Addresses, Security)
-/// Simplified version of web profile
+/// Now fully dynamic with AuthProvider data
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
 
@@ -31,91 +34,115 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: AppColors.surface,
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              // Profile Header
-              Container(
-                color: AppColors.surface,
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: AppColors.accent,
-                      child: const Icon(Icons.person, size: 40, color: Colors.white),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('John Doe', style: AppTextStyles.h2),
-                          const SizedBox(height: 4),
-                          Text('john@example.com', style: AppTextStyles.small),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        final user = auth.user;
+        final fullName = user?['fullName'] ?? 'User';
+        final email = user?['email'] ?? 'Not available';
+        final phone = user?['phone'] ?? '';
 
-              // Tab Bar
-              TabBar(
-                controller: _tabController,
-                labelColor: AppColors.accent,
-                unselectedLabelColor: AppColors.textSecondary,
-                indicatorColor: AppColors.accent,
-                tabs: const [
-                  Tab(text: 'Profile'),
-                  Tab(text: 'Addresses'),
-                  Tab(text: 'Security'),
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            title: const Text('Profile'),
+            backgroundColor: AppColors.surface,
+          ),
+          body: Stack(
+            children: [
+              Column(
+                children: [
+                  // Profile Header with  Avatar
+                  Container(
+                    color: AppColors.surface,
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Row(
+                      children: [
+                        UserAvatar(
+                          name: fullName,
+                          imageUrl: user?['avatarUrl'],
+                          size: 80,
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(fullName, style: AppTextStyles.h2),
+                              const SizedBox(height: 4),
+                              Text(email, style: AppTextStyles.small),
+                              if (phone.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(phone, style: AppTextStyles.small),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Tab Bar
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: AppColors.accent,
+                    unselectedLabelColor: AppColors.textSecondary,
+                    indicatorColor: AppColors.accent,
+                    tabs: const [
+                      Tab(text: 'Profile'),
+                      Tab(text: 'Addresses'),
+                      Tab(text: 'Security'),
+                    ],
+                  ),
+
+                  // Tab Content
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildProfileTab(fullName, email, phone),
+                        _buildAddressesTab(),
+                        _buildSecurityTab(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
 
-              // Tab Content
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildProfileTab(),
-                    _buildAddressesTab(),
-                    _buildSecurityTab(),
-                  ],
-                ),
+              FloatingBottomNav(
+                currentIndex: _currentNavIndex,
+                onTap: (index) => Navigator.of(context).pop(),
               ),
             ],
           ),
-
-          FloatingBottomNav(
-            currentIndex: _currentNavIndex,
-            onTap: (index) => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildProfileTab() {
+  Widget _buildProfileTab(String fullName, String email, String phone) {
+    final nameController = TextEditingController(text: fullName);
+    final phoneController = TextEditingController(text: phone);
+
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.screenMarginHorizontal),
       children: [
-        _buildTextField('Full Name', 'John Doe'),
+        _buildTextField('Full Name', nameController),
         const SizedBox(height: AppSpacing.sm),
-        _buildTextField('Email', 'john@example.com', enabled: false),
+        _buildTextField('Email', TextEditingController(text: email), enabled: false),
         const SizedBox(height: AppSpacing.sm),
-        _buildTextField('Phone', '+880 1234567890'),
+        _buildTextField('Phone', phoneController),
         const SizedBox(height: AppSpacing.md),
         ElevatedButton(
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+          onPressed: () {
+            // TODO: Implement save changes
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Save functionality coming soon!')),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.accent,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
           child: const Text('Save Changes', style: TextStyle(color: Colors.white)),
         ),
       ],
@@ -127,14 +154,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       padding: const EdgeInsets.all(AppSpacing.screenMarginHorizontal),
       children: [
         ElevatedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.add),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Add address functionality coming soon!')),
+            );
+          },
+          icon: const Icon(Icons.add, color: Colors.white),
           label: const Text('Add New Address'),
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.accent,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
-        _buildAddressCard('Home', '123 Main St, Dhaka', isDefault: true),
-        _buildAddressCard('Work', '456 Office Ave, Dhaka'),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              children: [
+                Icon(Icons.location_on_outlined, size: 64, color: AppColors.textSecondary),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'No saved addresses yet',
+                  style: AppTextStyles.small.copyWith(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -145,91 +192,45 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       children: [
         Text('Change Password', style: AppTextStyles.h2),
         const SizedBox(height: AppSpacing.md),
-        _buildTextField('Current Password', '', isPassword: true),
+        _buildTextField('Current Password', TextEditingController(), isPassword: true),
         const SizedBox(height: AppSpacing.sm),
-        _buildTextField('New Password', '', isPassword: true),
+        _buildTextField('New Password', TextEditingController(), isPassword: true),
         const SizedBox(height: AppSpacing.sm),
-        _buildTextField('Confirm Password', '', isPassword: true),
+        _buildTextField('Confirm Password', TextEditingController(), isPassword: true),
         const SizedBox(height: AppSpacing.md),
         ElevatedButton(
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Change password functionality coming soon!')),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.accent,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
           child: const Text('Update Password', style: TextStyle(color: Colors.white)),
         ),
       ],
     );
   }
 
-  Widget _buildTextField(String label, String hint, {bool enabled = true, bool isPassword = false}) {
+  Widget _buildTextField(String label, TextEditingController controller, {bool enabled = true, bool isPassword = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: AppTextStyles.bodyEmphasized),
         const SizedBox(height: 4),
         TextField(
+          controller: controller,
           enabled: enabled,
           obscureText: isPassword,
           decoration: InputDecoration(
-            hintText: hint,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             filled: !enabled,
             fillColor: enabled ? null : AppColors.baseOffWhite,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildAddressCard(String label, String address, {bool isDefault = false}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: isDefault ? AppColors.accent.withOpacity(0.1) : AppColors.surface,
-        border: Border.all(color: isDefault ? AppColors.accent : AppColors.border),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.location_on,
-            color: isDefault ? AppColors.accent : AppColors.textSecondary,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(label, style: AppTextStyles.bodyEmphasized),
-                    if (isDefault) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.accent,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'Default',
-                          style: TextStyle(color: Colors.white, fontSize: 10),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(address, style: AppTextStyles.small),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.delete, color: Colors.red),
-          ),
-        ],
-      ),
     );
   }
 }

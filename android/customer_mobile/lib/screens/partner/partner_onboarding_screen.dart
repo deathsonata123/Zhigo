@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
+import 'dart:typed_data';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_text_styles.dart';
@@ -24,7 +25,8 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
   
   // Form data
   final _formKey = GlobalKey<FormState>();
-  File? _photoFile;
+  Uint8List? _photoBytes; // For web compatibility
+  String? _photoName;
   String _businessName = '';
   String _businessType = 'Restaurant';
   String _phone = '';
@@ -55,8 +57,10 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     
     if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
       setState(() {
-        _photoFile = File(pickedFile.path);
+        _photoBytes = bytes;
+        _photoName = pickedFile.name;
       });
     }
   }
@@ -64,8 +68,8 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
   bool _validateStep() {
     switch (_currentStep) {
       case 0:
-        return _photoFile != null &&
-            _businessName.isNotEmpty &&
+        // Photo is optional for testing - only require business info
+        return _businessName.isNotEmpty &&
             _phone.length >= 11 &&
             _email.contains('@');
       case 1:
@@ -188,12 +192,12 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
                             children: [
                               const Icon(Icons.pending, color: Colors.amber),
                               const SizedBox(width: 8),
-                              Text('Pending Admin Approval', style: AppTextStyles.bodyEmphasized),
+                              Text('Waiting for Review', style: AppTextStyles.bodyEmphasized),
                             ],
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Your application for $_businessName is under review. We\'ll notify you via email within 1-2 business days.',
+                            'Your application for $_businessName has been submitted successfully! We will review it and let you know within a few days.',
                             style: AppTextStyles.small,
                           ),
                         ],
@@ -372,26 +376,33 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // Photo Upload
-        GestureDetector(
-          onTap: _pickImage,
-          child: Container(
-            height: 150,
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.border, width: 2),
-              borderRadius: BorderRadius.circular(8),
-              color: AppColors.baseOffWhite,
+        // Photo Upload with cursor effect
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: _pickImage,
+            child: Container(
+              height: 150,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.border, width: 2),
+                borderRadius: BorderRadius.circular(8),
+                color: AppColors.baseOffWhite,
+              ),
+              child: _photoBytes == null
+                  ? const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.upload, size: 48, color: AppColors.textSecondary),
+                        SizedBox(height: 8),
+                        Text('Upload Restaurant Photo'),
+                      ],
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.memory(_photoBytes!, fit: BoxFit.cover),
+                    ),
             ),
-            child: _photoFile == null
-                ? const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.upload, size: 48, color: AppColors.textSecondary),
-                      SizedBox(height: 8),
-                      Text('Upload Restaurant Photo'),
-                    ],
-                  )
-                : Image.file(_photoFile!, fit: BoxFit.cover),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),

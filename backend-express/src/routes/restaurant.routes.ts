@@ -27,22 +27,47 @@ router.get('/', async (req: Request, res: Response) => {
     }
 });
 
-// POST /api/restaurants
+// POST /api/restaurants - Partner Application
 router.post('/', async (req: Request, res: Response) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) {
-            return res.status(401).json({ error: 'Authentication required' });
-        }
+        const body = req.body;
 
-        const restaurant = await restaurantRepo.create(req.body);
+        // Map camelCase from frontend to snake_case for database
+        const restaurantData = {
+            name: body.name,
+            email: body.email,
+            phone: body.phone,
+            address: body.address,
+            photo_url: body.photoUrl || 'placeholder.jpg',
+            owner_id: body.ownerId || null, // Optional for now
+            business_type: body.businessType,
+            has_bin_vat: body.hasBinVat === 'yes',
+            bin_vat_number: body.binVatNumber || null,
+            display_price_with_vat: body.displayPriceWithVat === 'yes',
+            account_holder_name: body.accountHolderName,
+            account_type: body.accountType,
+            account_number: body.accountNumber,
+            bank_name: body.bankName || null,
+            branch_name: body.branchName || null,
+            routing_number: body.routingNumber || null,
+            city: body.city,
+            postal_code: body.postalCode,
+            pricing_plan: body.pricingPlan || 'basic',
+            status: 'pending', // Always start as pending for admin review
+        };
+
+        console.log('Creating restaurant with data:', restaurantData);
+
+        const restaurant = await restaurantRepo.create(restaurantData);
 
         res.status(201).json({
             success: true,
-            data: restaurant
+            data: restaurant,
+            message: 'Application submitted successfully! Waiting for admin review.'
         });
     } catch (error: any) {
-        res.status(500).json({ error: 'Failed to create restaurant' });
+        console.error('Failed to create restaurant:', error);
+        res.status(500).json({ error: 'Failed to create restaurant: ' + error.message });
     }
 });
 

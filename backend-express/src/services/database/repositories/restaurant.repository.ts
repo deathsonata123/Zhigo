@@ -68,11 +68,11 @@ export class RestaurantRepository {
         business_type, has_bin_vat, bin_vat_number, display_price_with_vat,
         account_holder_name, account_type, account_number, bank_name,
         branch_name, routing_number, zone, city, postal_code,
-        pricing_plan, latitude, longitude
+        pricing_plan, latitude, longitude, status
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19,
-        $20, $21, $22
+        $20, $21, $22, $23
       ) RETURNING *`,
             [
                 data.name,
@@ -97,6 +97,7 @@ export class RestaurantRepository {
                 data.pricing_plan,
                 data.latitude,
                 data.longitude,
+                data.status || 'pending',
             ]
         );
         return result[0];
