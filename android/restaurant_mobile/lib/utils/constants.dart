@@ -1,6 +1,13 @@
 // API Constants
 class ApiConstants {
-  // Base EC2 API URL - Update this with your actual EC2 instance URL
+  // For local development, use localhost
+  // For production/testing on device, use your EC2 instance URL
+  // Toggle this based on your testing environment
+  
+  // Local development (emulator can access localhost via 10.0.2.2 on Android)
+  // static const String baseUrl = 'http://10.0.2.2:3000';
+  
+  // EC2 Production URL
   static const String baseUrl = 'http://52.74.236.219:3000';
   
   // API Endpoints
@@ -17,10 +24,11 @@ class ApiConstants {
 
 // App Constants
 class AppConstants {
-  static const String appName = 'Restaurant Dashboard';
+  static const String appName = 'Zhigo Restaurant';
   static const String prefKeyAuthToken = 'auth_token';
   static const String prefKeyRestaurantId = 'restaurant_id';
   static const String prefKeyUserId = 'user_id';
+  static const String prefKeyUserData = 'user_data';
 }
 
 // Order Status Constants

@@ -44,36 +44,44 @@ export default function DashboardLayout({
 
     const checkAuth = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
-                credentials: 'include',
-            });
+            // Check if we have a stored user from login
+            const storedUser = localStorage.getItem('restaurant_user');
 
-            if (!response.ok) {
+            if (!storedUser) {
                 router.push('/login');
                 return;
             }
 
-            const data = await response.json();
+            const userData = JSON.parse(storedUser);
 
-            // Check if user is restaurant owner
-            if (!data.restaurantId && data.role !== 'restaurant_owner') {
+            // Check if user is partner/restaurant owner
+            if (userData.role !== 'partner' && !userData.restaurant_id) {
                 router.push('/login');
                 return;
             }
 
-            // Fetch restaurant details
-            if (data.restaurantId) {
-                const restaurantRes = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/restaurants/${data.restaurantId}`,
-                    { credentials: 'include' }
-                );
-                if (restaurantRes.ok) {
-                    const restaurantData = await restaurantRes.json();
-                    setRestaurant(restaurantData);
+            setUser(userData);
+
+            // Fetch restaurant details if we have a restaurant_id
+            if (userData.restaurant_id) {
+                try {
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                    const token = localStorage.getItem('restaurant_token');
+                    const restaurantRes = await fetch(
+                        `${apiUrl}/api/restaurants/${userData.restaurant_id}`,
+                        {
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                        }
+                    );
+                    if (restaurantRes.ok) {
+                        const restaurantData = await restaurantRes.json();
+                        setRestaurant(restaurantData.data || restaurantData);
+                    }
+                } catch (err) {
+                    console.log('Could not fetch restaurant details');
                 }
             }
 
-            setUser({ signInDetails: { loginId: data.email || 'Owner' } });
             setLoading(false);
         } catch (error) {
             console.error('Auth check error:', error);
@@ -83,10 +91,8 @@ export default function DashboardLayout({
 
     const handleSignOut = async () => {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
-                method: 'POST',
-                credentials: 'include',
-            });
+            localStorage.removeItem('restaurant_user');
+            localStorage.removeItem('restaurant_token');
             router.push('/login');
         } catch (error) {
             console.error('Sign out error:', error);
@@ -110,7 +116,7 @@ export default function DashboardLayout({
                     <span className="font-bold text-lg">Zhigo</span>
                 </div>
                 <div className="px-4 py-3 border-b">
-                    <p className="text-sm font-medium truncate">{restaurant?.name || 'Restaurant'}</p>
+                    <p className="text-sm font-medium truncate">{restaurant?.name || 'Your Restaurant'}</p>
                     <p className="text-xs text-muted-foreground">Restaurant Dashboard</p>
                 </div>
                 <nav className="flex-1 p-4 space-y-1">
@@ -136,7 +142,7 @@ export default function DashboardLayout({
                 </nav>
                 <div className="p-4 border-t">
                     <div className="mb-3 px-3">
-                        <p className="text-sm font-medium truncate">{user?.signInDetails?.loginId || 'Owner'}</p>
+                        <p className="text-sm font-medium truncate">{user?.email || 'Owner'}</p>
                         <p className="text-xs text-muted-foreground">Restaurant Owner</p>
                     </div>
                     <Button
@@ -195,7 +201,7 @@ export default function DashboardLayout({
                             </nav>
                             <div className="p-4 border-t">
                                 <div className="mb-3 px-3">
-                                    <p className="text-sm font-medium truncate">{user?.signInDetails?.loginId || 'Owner'}</p>
+                                    <p className="text-sm font-medium truncate">{user?.email || 'Owner'}</p>
                                     <p className="text-xs text-muted-foreground">Restaurant Owner</p>
                                 </div>
                                 <Button

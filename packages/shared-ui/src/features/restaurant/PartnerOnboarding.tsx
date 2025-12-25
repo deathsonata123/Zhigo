@@ -31,7 +31,12 @@ const step1Schema = z.object({
   businessType: z.string().min(1, "Please select a business type"),
   phone: z.string().min(11, "Please enter a valid phone number (11 digits)"),
   email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(8, "Please confirm your password"),
   photo: z.instanceof(File, { message: "Business photo is required" }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 // Step 2: Tax & Legal Information Schema
@@ -113,6 +118,8 @@ export default function PartnerRegistrationPage() {
       businessType: "",
       phone: "",
       email: "",
+      password: "",
+      confirmPassword: "",
       hasBinVat: undefined,
       displayPriceWithVat: undefined,
       accountHolderName: "",
@@ -146,7 +153,7 @@ export default function PartnerRegistrationPage() {
 
     switch (currentStep) {
       case 1:
-        fieldsToValidate = ['name', 'businessType', 'phone', 'email', 'photo'];
+        fieldsToValidate = ['name', 'businessType', 'phone', 'email', 'password', 'confirmPassword', 'photo'];
         break;
       case 2:
         fieldsToValidate = ['hasBinVat'];
@@ -230,6 +237,7 @@ export default function PartnerRegistrationPage() {
         name: values.name,
         email: values.email,
         phone: values.phone,
+        password: values.password, // Password for user account creation
         address: values.address,
         photoUrl: storedPhotoPath,
         ownerId: userId,
@@ -252,7 +260,7 @@ export default function PartnerRegistrationPage() {
       console.log('💾 Restaurant data to save:', restaurantData);
 
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const response = await fetch(`${apiUrl}/api/restaurants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -558,10 +566,41 @@ export default function PartnerRegistrationPage() {
                       <FormItem>
                         <FormLabel>Business Email *</FormLabel>
                         <FormDescription>
-                          We'll send important updates to this email
+                          We'll send important updates to this email. You'll also use this to login to your dashboard.
                         </FormDescription>
                         <FormControl>
                           <Input placeholder="contact@restaurant.com" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dashboard Password *</FormLabel>
+                        <FormDescription>
+                          Create a secure password for your restaurant dashboard
+                        </FormDescription>
+                        <FormControl>
+                          <Input type="password" placeholder="Minimum 8 characters" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password *</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Re-enter your password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

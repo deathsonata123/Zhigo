@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/constants.dart';
 import 'api_service.dart';
@@ -19,22 +20,41 @@ class AuthService {
       },
     );
 
-    if (response['success'] == true && response['token'] != null) {
-      await _apiService.setAuthToken(response['token']);
+    // Handle nested response: { success: true, data: { token, user } }
+    final data = response['data'] ?? response;
+    final token = data['token'] ?? response['token'];
+    final user = data['user'] ?? response['user'];
+
+    if (response['success'] == true && token != null) {
+      await _apiService.setAuthToken(token);
       
       // Save user data
-      if (response['user'] != null) {
+      if (user != null) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(AppConstants.prefKeyUserId, response['user']['id']);
         
-        // Save restaurant ID if user is a restaurant owner
-        if (response['user']['restaurant_id'] != null) {
-          await prefs.setString(
-            AppConstants.prefKeyRestaurantId,
-            response['user']['restaurant_id'],
-          );
+        // Save user ID
+        final userId = user['id']?.toString() ?? '';
+        if (userId.isNotEmpty) {
+          await prefs.setString(AppConstants.prefKeyUserId, userId);
+        }
+        
+        // Save full user data as JSON
+        await prefs.setString(AppConstants.prefKeyUserData, jsonEncode(user));
+        
+        // Save restaurant ID if user is a restaurant owner/partner
+        final restaurantId = user['restaurant_id']?.toString();
+        if (restaurantId != null && restaurantId.isNotEmpty) {
+          await prefs.setString(AppConstants.prefKeyRestaurantId, restaurantId);
+        }
+        
+        // Check if user has partner role
+        final role = user['role']?.toString();
+        if (role != 'partner' && restaurantId == null) {
+          throw ApiException('No restaurant associated with this account');
         }
       }
+    } else {
+      throw ApiException(response['error'] ?? 'Login failed');
     }
 
     return response;
@@ -46,6 +66,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.prefKeyUserId);
     await prefs.remove(AppConstants.prefKeyRestaurantId);
+    await prefs.remove(AppConstants.prefKeyUserData);
   }
 
   // Check if user is logged in
@@ -65,5 +86,15 @@ class AuthService {
   Future<String?> getRestaurantId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(AppConstants.prefKeyRestaurantId);
+  }
+
+  // Get current user data
+  Future<Map<String, dynamic>?> getCurrentUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userData = prefs.getString(AppConstants.prefKeyUserData);
+    if (userData != null) {
+      return jsonDecode(userData) as Map<String, dynamic>;
+    }
+    return null;
   }
 }

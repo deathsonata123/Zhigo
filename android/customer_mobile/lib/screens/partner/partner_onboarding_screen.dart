@@ -31,6 +31,8 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
   String _businessType = 'Restaurant';
   String _phone = '';
   String _email = '';
+  String _password = '';
+  String _confirmPassword = '';
   String _hasBinVat = 'no';
   String _binVatNumber = '';
   String _displayPriceWithVat = 'yes';
@@ -68,10 +70,23 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
   bool _validateStep() {
     switch (_currentStep) {
       case 0:
-        // Photo is optional for testing - only require business info
-        return _businessName.isNotEmpty &&
-            _phone.length >= 11 &&
-            _email.contains('@');
+        // Require business info and password
+        if (_businessName.isEmpty || _phone.length < 11 || !_email.contains('@')) {
+          return false;
+        }
+        if (_password.length < 8) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Password must be at least 8 characters')),
+          );
+          return false;
+        }
+        if (_password != _confirmPassword) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Passwords do not match')),
+          );
+          return false;
+        }
+        return true;
       case 1:
         if (_hasBinVat == 'yes') {
           return _binVatNumber.isNotEmpty;
@@ -102,14 +117,14 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      // Create restaurant data
+      // Create restaurant data with password for user account creation
       final restaurantData = {
         'name': _businessName,
         'email': _email,
         'phone': _phone,
+        'password': _password, // For creating user account
         'address': _address,
         'photoUrl': 'placeholder.jpg', // TODO: Upload to S3
-        'ownerId': 'dummy-user-id', // TODO: Get from auth
         'status': 'pending',
         'businessType': _businessType,
         'hasBinVat': _hasBinVat,
@@ -442,10 +457,32 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
         TextFormField(
           decoration: const InputDecoration(
             labelText: 'Email *',
+            helperText: 'You\\'ll use this to login to your dashboard',
             border: OutlineInputBorder(),
           ),
           keyboardType: TextInputType.emailAddress,
           onChanged: (value) => _email = value,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+
+        TextFormField(
+          decoration: const InputDecoration(
+            labelText: 'Dashboard Password *',
+            helperText: 'Create a password for your restaurant dashboard (min 8 characters)',
+            border: OutlineInputBorder(),
+          ),
+          obscureText: true,
+          onChanged: (value) => _password = value,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+
+        TextFormField(
+          decoration: const InputDecoration(
+            labelText: 'Confirm Password *',
+            border: OutlineInputBorder(),
+          ),
+          obscureText: true,
+          onChanged: (value) => _confirmPassword = value,
         ),
       ],
     );
