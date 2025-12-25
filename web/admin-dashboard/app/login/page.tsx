@@ -16,26 +16,32 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      const responseData = await response.json();
 
-        if (data.user?.role === 'admin' || data.user?.isAdmin) {
+      if (response.ok && responseData.success) {
+        const user = responseData.data?.user;
+        const token = responseData.data?.token;
+
+        if (user?.role === 'admin') {
+          // Store user and token in localStorage
+          localStorage.setItem('admin_user', JSON.stringify(user));
+          localStorage.setItem('admin_token', token);
           router.push('/dashboard');
         } else {
           setError('Unauthorized: Admin access required');
         }
       } else {
-        const data = await response.json();
-        setError(data.message || 'Invalid email or password');
+        setError(responseData.error || responseData.message || 'Invalid email or password');
       }
     } catch (err) {
+      console.error('Login error:', err);
       setError('Login failed. Please try again.');
     } finally {
       setLoading(false);

@@ -1,41 +1,31 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    // Check if admin user is stored
+    const storedUser = localStorage.getItem('admin_user');
 
-  const checkAuth = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const user = await response.json();
-
-        // Check if user is admin
-        if (user.role === 'admin' || user.isAdmin) {
-          router.push('/dashboard');
-        } else {
-          router.push('/unauthorized');
-        }
-      } else {
-        router.push('/login');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      if (userData.role === 'admin') {
+        router.push('/dashboard');
+        return;
       }
-    } catch (error) {
-      router.push('/login');
     }
-  };
+
+    // Not logged in or not admin - go to login
+    router.push('/login');
+  }, [router]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="animate-spin h-8 w-8 border-4 border-cyan-500 border-t-transparent rounded-full"></div>
     </div>
   );
 }

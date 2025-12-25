@@ -37,22 +37,22 @@ export default function DashboardLayout({
 
     const checkAuth = async () => {
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
-                credentials: 'include',
-            });
+            // Check if we have a stored admin user from login
+            const storedUser = localStorage.getItem('admin_user');
 
-            if (!response.ok) {
+            if (!storedUser) {
                 router.push('/login');
                 return;
             }
 
-            const data = await response.json();
-            if (data.role !== 'admin') {
+            const userData = JSON.parse(storedUser);
+
+            if (userData.role !== 'admin') {
                 router.push('/unauthorized');
                 return;
             }
 
-            setUser({ signInDetails: { loginId: data.email || 'Admin' } });
+            setUser(userData);
             setLoading(false);
         } catch (error) {
             console.error('Auth check error:', error);
@@ -62,10 +62,8 @@ export default function DashboardLayout({
 
     const handleSignOut = async () => {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
-                method: 'POST',
-                credentials: 'include',
-            });
+            localStorage.removeItem('admin_user');
+            localStorage.removeItem('admin_token');
             router.push('/login');
         } catch (error) {
             console.error('Sign out error:', error);
@@ -111,7 +109,7 @@ export default function DashboardLayout({
                 </nav>
                 <div className="p-4 border-t">
                     <div className="mb-3 px-3">
-                        <p className="text-sm font-medium truncate">{user?.signInDetails?.loginId || 'Admin'}</p>
+                        <p className="text-sm font-medium truncate">{user?.email || 'Admin'}</p>
                         <p className="text-xs text-muted-foreground">Administrator</p>
                     </div>
                     <Button
@@ -166,7 +164,7 @@ export default function DashboardLayout({
                             </nav>
                             <div className="p-4 border-t">
                                 <div className="mb-3 px-3">
-                                    <p className="text-sm font-medium truncate">{user?.signInDetails?.loginId || 'Admin'}</p>
+                                    <p className="text-sm font-medium truncate">{user?.email || 'Admin'}</p>
                                     <p className="text-xs text-muted-foreground">Administrator</p>
                                 </div>
                                 <Button

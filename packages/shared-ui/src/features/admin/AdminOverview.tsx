@@ -27,26 +27,28 @@ export default function AdminDashboardPage() {
   const fetchDashboardStats = async () => {
     setLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
       const restaurantsRes = await fetch(`${apiUrl}/api/restaurants`);
       if (!restaurantsRes.ok) throw new Error('Failed to fetch restaurants');
-      const restaurants = await restaurantsRes.json();
+      const restaurantsJson = await restaurantsRes.json();
+      const restaurants = restaurantsJson.data || restaurantsJson || [];
 
       const ridersRes = await fetch(`${apiUrl}/api/riders`);
-      if (!ridersRes.ok) throw new Error('Failed to fetch riders');
-      const riders = await ridersRes.json();
+      const ridersJson = ridersRes.ok ? await ridersRes.json() : { data: [] };
+      const riders = ridersJson.data || ridersJson || [];
 
-      if (restaurants) {
+      if (Array.isArray(restaurants)) {
         const totalRestaurants = restaurants.length;
         const pendingRestaurants = restaurants.filter((r: any) => r.status === 'pending').length;
         const approvedRestaurants = restaurants.filter((r: any) => r.status === 'approved').length;
         const rejectedRestaurants = restaurants.filter((r: any) => r.status === 'rejected').length;
 
-        const totalRiders = riders?.length || 0;
-        const pendingRiders = riders?.filter((r: any) => r.status === 'pending').length || 0;
-        const approvedRiders = riders?.filter((r: any) => r.status === 'approved').length || 0;
-        const onlineRiders = riders?.filter((r: any) => r.status === 'approved' && r.isOnline).length || 0;
+        const ridersArray = Array.isArray(riders) ? riders : [];
+        const totalRiders = ridersArray.length;
+        const pendingRiders = ridersArray.filter((r: any) => r.status === 'pending').length;
+        const approvedRiders = ridersArray.filter((r: any) => r.status === 'approved').length;
+        const onlineRiders = ridersArray.filter((r: any) => r.status === 'approved' && r.isOnline).length;
 
         setStats({
           totalRestaurants,

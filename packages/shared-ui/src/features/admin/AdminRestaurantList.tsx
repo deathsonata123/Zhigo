@@ -40,21 +40,22 @@ export default function RestaurantApprovalsPage() {
   const fetchRestaurants = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const response = await fetch(`${apiUrl}/api/restaurants`);
 
       if (!response.ok) throw new Error('Failed to fetch restaurants');
 
-      const data = await response.json();
+      const responseData = await response.json();
+      const restaurants = responseData.data || responseData || [];
 
-      if (data) {
+      if (Array.isArray(restaurants)) {
         const restaurantsWithImages = await Promise.all(
-          data.map(async (restaurant: any) => {
+          restaurants.map(async (restaurant: any) => {
             let imageUrl = 'https://picsum.photos/seed/default/600/400';
 
-            if (restaurant.photoUrl) {
+            if (restaurant.photo_url || restaurant.photoUrl) {
               try {
-                const urlResult = await getUrl({ path: restaurant.photoUrl });
+                const urlResult = await getUrl({ path: restaurant.photo_url || restaurant.photoUrl });
                 imageUrl = urlResult.url.toString();
               } catch (error) {
                 console.log('Error fetching image:', error);
@@ -64,13 +65,13 @@ export default function RestaurantApprovalsPage() {
             return {
               id: restaurant.id,
               name: restaurant.name || 'Unknown',
-              businessType: restaurant.businessType || 'N/A',
+              businessType: restaurant.business_type || restaurant.businessType || 'N/A',
               address: restaurant.address || 'N/A',
               email: restaurant.email || 'N/A',
               phone: restaurant.phone || 'N/A',
-              photoUrl: restaurant.photoUrl || '',
+              photoUrl: restaurant.photo_url || restaurant.photoUrl || '',
               imageUrl,
-              ownerId: restaurant.ownerId || '',
+              ownerId: restaurant.owner_id || restaurant.ownerId || '',
               status: restaurant.status || 'pending',
             };
           })
@@ -95,7 +96,7 @@ export default function RestaurantApprovalsPage() {
 
     setProcessingId(restaurantId);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const response = await fetch(`${apiUrl}/api/restaurants/${restaurantId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -131,7 +132,7 @@ export default function RestaurantApprovalsPage() {
 
     setProcessingId(restaurantId);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://52.74.236.219:3000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
       const response = await fetch(`${apiUrl}/api/restaurants/${restaurantId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
