@@ -106,6 +106,39 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
     }
   }
 
+  Future<String?> _uploadPhoto() async {
+    if (_photoBytes == null) return null;
+    
+    try {
+      // Create multipart request
+      final uri = Uri.parse('${ApiConfig.baseUrl}/api/upload/restaurant-photo');
+      final request = http.MultipartRequest('POST', uri);
+      
+      // Add the file
+      request.files.add(http.MultipartFile.fromBytes(
+        'photo',
+        _photoBytes!,
+        filename: _photoName ?? 'restaurant_photo.jpg',
+      ));
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          return data['data']['url'];
+        }
+      }
+      
+      print('Photo upload failed: ${response.body}');
+      return null;
+    } catch (e) {
+      print('Photo upload error: $e');
+      return null;
+    }
+  }
+
   Future<void> _submitForm() async {
     if (!_validateStep()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -117,6 +150,15 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
     setState(() => _isSubmitting = true);
 
     try {
+      // First, upload the photo if we have one
+      String? photoUrl;
+      if (_photoBytes != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Uploading photo...')),
+        );
+        photoUrl = await _uploadPhoto();
+      }
+
       // Create restaurant data with password for user account creation
       final restaurantData = {
         'name': _businessName,
@@ -124,7 +166,7 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
         'phone': _phone,
         'password': _password, // For creating user account
         'address': _address,
-        'photoUrl': 'placeholder.jpg', // TODO: Upload to S3
+        'photoUrl': photoUrl ?? 'placeholder.jpg', // Use uploaded URL or fallback
         'status': 'pending',
         'businessType': _businessType,
         'hasBinVat': _hasBinVat,
@@ -457,7 +499,7 @@ class _PartnerOnboardingScreenState extends State<PartnerOnboardingScreen> {
         TextFormField(
           decoration: const InputDecoration(
             labelText: 'Email *',
-            helperText: 'You\\'ll use this to login to your dashboard',
+            helperText: "You'll use this to login to your dashboard",
             border: OutlineInputBorder(),
           ),
           keyboardType: TextInputType.emailAddress,

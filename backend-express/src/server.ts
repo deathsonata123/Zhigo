@@ -45,6 +45,7 @@ import userRoutes from './routes/user.routes';
 import storageRoutes from './routes/storage.routes';
 import adminRoutes from './routes/admin.routes';
 import chatRoutes from './routes/chat.routes';
+import uploadRoutes from './routes/upload.routes';
 
 
 // Initialize logger
@@ -80,11 +81,23 @@ app.set('trust proxy', 1);
 // Security headers
 app.use(helmet());
 
-// CORS - Allow all origins for development
+// CORS - Allow all origins for development (including Flutter web)
 app.use(cors({
-    origin: '*',
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+
+        // Allow all localhost origins for development
+        if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+            return callback(null, true);
+        }
+
+        // Allow all origins in development
+        return callback(null, true);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true
 }));
 
 // Body parsing
@@ -154,6 +167,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/storage', storageRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

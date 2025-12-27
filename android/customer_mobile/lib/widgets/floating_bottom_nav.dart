@@ -4,6 +4,10 @@ import '../theme/app_spacing.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
+import '../screens/home/home_screen.dart';
+import '../screens/search/search_screen.dart';
+import '../screens/orders/orders_screen.dart';
+import '../screens/profile/user_profile_screen.dart';
 import 'user_avatar.dart';
 
 /// Clean Floating Bottom Navigation with hover effects on icons
@@ -28,6 +32,36 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> {
     showDialog(
       context: context,
       builder: (context) => LoginScreen(),
+    );
+  }
+
+  void _navigateTo(BuildContext context, int index) {
+    if (widget.currentIndex == index) return;
+    
+    Widget screen;
+    switch (index) {
+      case 0:
+        screen = const HomeScreen();
+        break;
+      case 1:
+        screen = const SearchScreen();
+        break;
+      case 2:
+        screen = const OrdersScreen();
+        break;
+      case 3:
+        screen = const UserProfileScreen();
+        break;
+      default:
+        return;
+    }
+    
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => screen,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
     );
   }
 
@@ -60,7 +94,7 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> {
                   _buildNavIcon(
                     icon: Icons.home_rounded,
                     index: 0,
-                    onTap: () => widget.onTap(0),
+                    onTap: () => _navigateTo(context, 0),
                   ),
 
                   const SizedBox(width: 16),
@@ -69,26 +103,26 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> {
                   _buildNavIcon(
                     icon: Icons.search_outlined,
                     index: 1,
-                    onTap: () => widget.onTap(1),
+                    onTap: () => _navigateTo(context, 1),
                   ),
 
                   const SizedBox(width: 16),
 
-                  // Chat icon
+                  // Orders icon (shopping bag)
                   _buildNavIcon(
-                    icon: Icons.chat_bubble_outline,
+                    icon: Icons.shopping_bag_outlined,
                     index: 2,
-                    onTap: () => widget.onTap(2),
+                    onTap: () => _navigateTo(context, 2),
                   ),
 
                   const SizedBox(width: 16),
 
-                  // User avatar or login icon
+                  // User avatar or profile icon
                   if (auth.isAuthenticated)
                     MouseRegion(
                       cursor: SystemMouseCursors.click,
                       child: GestureDetector(
-                        onTap: () => widget.onTap(3),
+                        onTap: () => _navigateTo(context, 3),
                         child: UserAvatar(
                           name: auth.user?['fullName'] ?? auth.user?['email'] ?? '?',
                           imageUrl: auth.user?['avatarUrl'],
@@ -98,9 +132,9 @@ class _FloatingBottomNavState extends State<FloatingBottomNav> {
                     )
                   else
                     _buildNavIcon(
-                      icon: Icons.people_outline,
+                      icon: Icons.person_outline,
                       index: 3,
-                      onTap: () => _showLoginModal(context),
+                      onTap: () => _navigateTo(context, 3),
                     ),
                 ],
               ),

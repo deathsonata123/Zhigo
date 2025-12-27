@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "shared-ui/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "Zhigo Admin Dashboard",
@@ -16,7 +15,6 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         {children}
-        <Toaster />
       </body>
     </html>
   );

@@ -24,6 +24,7 @@
         "@aws-sdk/client-sns": "^3.958.0",
         "@aws-sdk/s3-request-presigner": "^3.490.0",
         "@google/generative-ai": "^0.24.1",
+        "@types/multer": "^2.0.0",
         "@types/nodemailer": "^7.0.4",
         "aws-cdk-lib": "^2.232.1",
         "bcryptjs": "^2.4.3",
@@ -35,6 +36,7 @@
         "express-rate-limit": "^7.1.5",
         "helmet": "^7.1.0",
         "jsonwebtoken": "^9.0.2",
+        "multer": "^2.0.2",
         "nodemailer": "^7.0.12",
         "pg": "^8.11.3",
         "winston": "^3.11.0"
